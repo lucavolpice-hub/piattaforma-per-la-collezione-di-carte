@@ -9,7 +9,7 @@ public class Utente {
     private Inventario inventario;
     private List<Annuncio> annunciCreati;
     private List<Recensione> recensioniRicevute;
-    private List<ProposteScambio> proposteEffettuate;
+    private List<PropostaScambio> proposteEffettuate;
 
     //COSTRUTTORE
     public Utente(String username, String password) {
@@ -54,7 +54,7 @@ public class Utente {
         return recensioniRicevute;
     }
 
-    public List<ProposteScambio> getProposteEffettuate() {
+    public List<PropostaScambio> getProposteEffettuate() {
         return proposteEffettuate;
     }
 

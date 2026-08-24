@@ -19,7 +19,7 @@ public abstract class Annuncio {
         this.descrizione=descrizione;
         this.categoria=categoria;
         this.creatore=creatore;
-        this.stato=StatoAnnuncio.DISPONIBILE;
+        this.stato= StatoAnnuncio.DISPONIBILE;
         this.carte=new ArrayList<>();
     }
 
@@ -59,11 +59,11 @@ public abstract class Annuncio {
     }
 
     public void avviaTrattativa(){
-        stato=StatoAnnuncio.IN_TRATTATIVA;
+        stato= StatoAnnuncio.IN_TRATTATIVA;
     }
 
     public void concludi(){
-        stato=StatoAnnuncio.CONCLUSO;
+        stato= StatoAnnuncio.CONCLUSO;
     }
 
     //TOSTRING
