@@ -10,11 +10,10 @@ public class PropostaScambio {
     private LocalDate data;
     private StatoAnnuncio stato;
     private Utente proponente;
-    private AnnuncioScambio annuncioRicevuto;
-    private List<CartaFisica> carteOfferte;
+
 
     //COSTRUTTORE
-    public PropostaScambio(Utente proponente,AnnuncioScambio annuncioRicevuto,List<CartaFisica>carteOfferte){
+    public PropostaScambio(Utente proponente, ){
         this.idProposta=++contatore;
         this.data=LocalDate.now();
         this.stato=StatoAnnuncio.IN_TRATTATIVA;
