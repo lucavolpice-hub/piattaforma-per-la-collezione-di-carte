@@ -3,6 +3,7 @@ package controller;
 import java.util.ArrayList;
 import java.util.List;
 
+import model.Annuncio;
 import model.Utente;
 
 /**
@@ -24,17 +25,18 @@ public class Piattaforma {
      * i metodi pubblici, senza sostituirla accidentalmente.
      */
     private final List<Utente> utenti;
-
+    private final List<Annuncio>annuncio;
     /**
      * Crea una piattaforma inizialmente priva di utenti.
      */
-    public Piattaforma() {
+    public Piattaforma(List<Annuncio> annuncio) {
+        this.annuncio = annuncio;
         utenti = new ArrayList<>();
     }
 
     /**
      * Restituisce gli utenti registrati.
-     *
+     * <p>
      * I futuri controller useranno questa lista per cercare,
      * aggiungere o rimuovere utenti.
      */
@@ -42,9 +44,13 @@ public class Piattaforma {
         return utenti;
     }
 
+    public List<Annuncio> getAnnuncio() {
+        return annuncio;
+    }
+
     /**
      * Inserisce un utente nell'archivio centrale.
-     *
+     * <p>
      * Il controllo su username vuoto o duplicato non viene fatto qui:
      * sarà responsabilità di ControllerUtenti, quando verrà creato.
      *
