@@ -110,8 +110,14 @@ public class ControllerUtenti {
             return false;
         }
 
-        utente.setPassword(nuovaPassword);
-        return true;
+        try {
+            utente.setPassword(nuovaPassword);
+            return true;
+        } catch (Exception e) {
+            // In caso di errore imprevisto durante il cambio password,
+            // logghiamo (o ignoriamo) e restituiamo false.
+            return false;
+        }
     }
 
     /**

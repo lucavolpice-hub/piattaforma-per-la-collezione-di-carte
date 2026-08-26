@@ -141,7 +141,13 @@ public class ControllerAnnunci {
             return false;
         }
 
-        annuncio.concludi();
-        return true;
+        try {
+            annuncio.concludi();
+            return true;
+        } catch (Exception e) {
+            // In caso di errore imprevisto durante la chiusura,
+            // restituiamo false per segnalare che l'operazione non è andata a buon fine.
+            return false;
+        }
     }
 }
