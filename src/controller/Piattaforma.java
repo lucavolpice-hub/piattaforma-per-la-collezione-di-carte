@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import model.Annuncio;
+import model.PropostaScambio;
 import model.Utente;
 
 /**
@@ -26,11 +27,14 @@ public class Piattaforma {
      */
     private final List<Utente> utenti;
     private final List<Annuncio>annuncio;
+    private final List<PropostaScambio>proposteScambio;
     /**
      * Crea una piattaforma inizialmente priva di utenti.
      */
-    public Piattaforma(List<Annuncio> annuncio) {
+
+    public Piattaforma(List<Annuncio> annuncio, List<PropostaScambio> proposteScambio) {
         this.annuncio = annuncio;
+        this.proposteScambio = proposteScambio;
         utenti = new ArrayList<>();
     }
 
@@ -46,6 +50,10 @@ public class Piattaforma {
 
     public List<Annuncio> getAnnuncio() {
         return annuncio;
+    }
+
+    public List<PropostaScambio> getProposteScambio() {
+        return proposteScambio;
     }
 
     /**
