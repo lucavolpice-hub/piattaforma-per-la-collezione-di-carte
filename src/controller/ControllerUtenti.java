@@ -1,7 +1,11 @@
 package controller;
 
-import java.util.ArrayList;
-import java.util.List;
+import dao.CartaFisicaDAO;
+import dao.CartaFisicaFileDAO;
+import dao.InventarioDAO;
+import dao.InventarioFileDAO;
+import dao.UtenteDAO;
+import dao.UtenteFileDAO;
 
 import model.Annuncio;
 import model.CartaFisica;
@@ -9,16 +13,54 @@ import model.PropostaScambio;
 import model.Recensione;
 import model.Utente;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Gestisce registrazione, login, inventario e recensioni degli utenti.
  */
 public class ControllerUtenti {
 
-    // Riferimento all'archivio centrale condiviso dai controller.
-    private Piattaforma piattaforma;
+    private final Piattaforma piattaforma;
+    private final UtenteDAO utenteDAO;
+    private final CartaFisicaDAO cartaDAO;
+    private final InventarioDAO inventarioDAO;
 
     public ControllerUtenti(Piattaforma piattaforma) {
         this.piattaforma = piattaforma;
+        this.utenteDAO = new UtenteFileDAO();
+        this.cartaDAO = new CartaFisicaFileDAO();
+        this.inventarioDAO = new InventarioFileDAO();
+
+        caricaUtentiDalFile();
+        caricaInventariDalFile();
+    }
+
+    private void caricaUtentiDalFile() {
+        List<Utente> utentiSalvati = utenteDAO.trovaTutti();
+
+        for (Utente utente : utentiSalvati) {
+            if (cercaUtente(utente.getUsername()) == null) {
+                piattaforma.aggiungiUtente(utente);
+            }
+        }
+    }
+
+    private void caricaInventariDalFile() {
+        for (Utente utente : piattaforma.getUtenti()) {
+            List<Integer> idCarte =
+                    inventarioDAO.trovaIdCartePerUtente(
+                            utente.getUsername()
+                    );
+
+            for (Integer idCarta : idCarte) {
+                CartaFisica carta = cartaDAO.cercaPerId(idCarta);
+
+                if (carta != null) {
+                    utente.getInventario().aggiungiCarta(carta);
+                }
+            }
+        }
     }
 
     /**
@@ -47,11 +89,7 @@ public class ControllerUtenti {
             return false;
         }
 
-        if (cercaUtente(username) != null) {
-            return false;
-        }
-
-        return true;
+        return cercaUtente(username) == null;
     }
 
     /**
@@ -71,6 +109,11 @@ public class ControllerUtenti {
         }
 
         Utente nuovoUtente = new Utente(username, password);
+
+        if (!utenteDAO.salva(nuovoUtente)) {
+            return false;
+        }
+
         piattaforma.aggiungiUtente(nuovoUtente);
 
         return true;
@@ -110,36 +153,25 @@ public class ControllerUtenti {
             return false;
         }
 
-        try {
-            utente.setPassword(nuovaPassword);
-            return true;
-        } catch (Exception e) {
-            // In caso di errore imprevisto durante il cambio password,
-            // logghiamo (o ignoriamo) e restituiamo false.
-            return false;
-        }
-    }
+        String vecchiaPassword = utente.getPassword();
+        utente.setPassword(nuovaPassword);
 
-    /**
-     * Aggiunge una carta all'inventario di un utente registrato.
-     */
-    public boolean aggiungiCartaInventario(Utente utente, CartaFisica carta) {
-        if (utente == null || carta == null) {
+        if (!utenteDAO.aggiorna(utente)) {
+            utente.setPassword(vecchiaPassword);
             return false;
         }
 
-        if (!piattaforma.getUtenti().contains(utente)) {
-            return false;
-        }
-
-        utente.getInventario().aggiungiCarta(carta);
         return true;
     }
 
     /**
-     * Rimuove una carta dall'inventario dell'utente.
+     * Aggiunge una carta all'inventario di un utente registrato,
+     * salvando carta e relazione utente-carta nei file.
      */
-    public boolean rimuoviCartaInventario(Utente utente, CartaFisica carta) {
+    public boolean aggiungiCartaInventario(
+            Utente utente,
+            CartaFisica carta
+    ) {
         if (utente == null || carta == null) {
             return false;
         }
@@ -148,58 +180,110 @@ public class ControllerUtenti {
             return false;
         }
 
+        if (cartaDAO.cercaPerId(carta.getIdCarta()) != null) {
+            return false;
+        }
+
+        boolean cartaSalvata = cartaDAO.salva(carta);
+
+        if (!cartaSalvata) {
+            return false;
+        }
+
+        boolean collegamentoSalvato = inventarioDAO.aggiungiCarta(
+                utente.getUsername(),
+                carta.getIdCarta()
+        );
+
+        if (!collegamentoSalvato) {
+            cartaDAO.elimina(carta.getIdCarta());
+            return false;
+        }
+
+        utente.getInventario().aggiungiCarta(carta);
+
+        return true;
+    }
+
+    /**
+     * Rimuove una carta dall'inventario dell'utente e dai file.
+     */
+    public boolean rimuoviCartaInventario(
+            Utente utente,
+            CartaFisica carta
+    ) {
+        if (utente == null || carta == null) {
+            return false;
+        }
+
+        if (!piattaforma.getUtenti().contains(utente)) {
+            return false;
+        }
+
+        boolean collegamentoRimosso = inventarioDAO.rimuoviCarta(
+                utente.getUsername(),
+                carta.getIdCarta()
+        );
+
+        if (!collegamentoRimosso) {
+            return false;
+        }
+
+        boolean cartaEliminata = cartaDAO.elimina(carta.getIdCarta());
+
+        if (!cartaEliminata) {
+            inventarioDAO.aggiungiCarta(
+                    utente.getUsername(),
+                    carta.getIdCarta()
+            );
+            return false;
+        }
+
         utente.getInventario().rimuoviCarta(carta);
+
         return true;
     }
 
     /**
      * Restituisce le carte non bloccate in uno scambio.
      */
-    public List getCarteDisponibili(Utente utente) {
+    public List<CartaFisica> getCarteDisponibili(Utente utente) {
         if (utente == null) {
-            return new ArrayList();
+            return new ArrayList<>();
         }
 
         return utente.getInventario().getCarteDisponibili();
     }
 
     /**
-     * Collega un annuncio sia alla piattaforma sia al suo creatore.
-     * La creazione dell'annuncio viene fatta da ControllerAnnunci.
-     *
-     * Per ora usa getAnnuncio() e non aggiunge direttamente alla piattaforma,
-     * perché non esiste ancora un metodo aggiungiAnnuncio(...).
+     * Collega un annuncio al suo creatore.
+     * L'aggiunta dell'annuncio alla piattaforma viene gestita
+     * da ControllerAnnunci.
      */
     public boolean aggiungiAnnuncio(Utente utente, Annuncio annuncio) {
         if (utente == null || annuncio == null) {
             return false;
         }
 
-        // Controllo che l'utente sia registrato
         if (!piattaforma.getUtenti().contains(utente)) {
             return false;
         }
 
-        // Aggiunge l'annuncio alla lista personale dell'utente
         if (!utente.getAnnunciCreati().contains(annuncio)) {
             utente.aggiungiAnnuncio(annuncio);
         }
-
-        // Per il futuro: quando in Piattaforma ci sarà aggiungiAnnuncio(Annuncio),
-        // qui si potrà chiamare: piattaforma.aggiungiAnnuncio(annuncio);
-        // Per ora ci limitiamo a non fare nulla di più sulla piattaforma.
 
         return true;
     }
 
     /**
-     * Collega una proposta sia alla piattaforma sia all'utente proponente.
-     * La creazione della proposta viene fatta da ControllerScambi.
-     *
-     * Per ora non usa metodi su Piattaforma, perché non esistono ancora
-     * getProposteScambio() né aggiungiPropostaScambio(...).
+     * Collega una proposta all'utente proponente.
+     * L'aggiunta globale viene gestita da ControllerScambi.
      */
-    public boolean aggiungiProposta(Utente utente, PropostaScambio proposta) {
+    public boolean aggiungiProposta(
+            Utente utente,
+            PropostaScambio proposta
+    ) {
         if (utente == null || proposta == null) {
             return false;
         }
@@ -208,13 +292,9 @@ public class ControllerUtenti {
             return false;
         }
 
-        // Aggiunge la proposta alla lista personale dell'utente
         if (!utente.getProposteEffettuate().contains(proposta)) {
             utente.aggiungiProposta(proposta);
         }
-
-        // Per il futuro: quando in Piattaforma ci sarà
-        // aggiungiPropostaScambio(PropostaScambio), si potrà chiamare qui.
 
         return true;
     }
@@ -224,11 +304,7 @@ public class ControllerUtenti {
      * dall'utente destinatario.
      */
     public boolean aggiungiRecensione(Recensione recensione) {
-        if (recensione == null) {
-            return false;
-        }
-
-        if (!recensione.isValida()) {
+        if (recensione == null || !recensione.isValida()) {
             return false;
         }
 
@@ -243,15 +319,16 @@ public class ControllerUtenti {
         }
 
         destinatario.aggiungiRecensioneRicevuta(recensione);
+
         return true;
     }
 
     /**
      * Restituisce le recensioni ricevute da un utente.
      */
-    public List getRecensioni(Utente utente) {
+    public List<Recensione> getRecensioni(Utente utente) {
         if (utente == null) {
-            return new ArrayList();
+            return new ArrayList<>();
         }
 
         return utente.getRecensioniRicevute();
