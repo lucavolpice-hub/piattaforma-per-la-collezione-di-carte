@@ -41,6 +41,9 @@ public abstract class Annuncio {
         this.categoria=categoria;
     }
 
+    public Utente getCreatore() {
+        return creatore;
+    }
     public StatoAnnuncio getStato() {
         return stato;
     }
@@ -50,6 +53,10 @@ public abstract class Annuncio {
     }
 
     //METODI
+    public void setStato(StatoAnnuncio stato) {
+        this.stato = stato;
+    }
+
     public void aggiungiCarta(CartaFisica carta){
         carte.add(carta);
     }

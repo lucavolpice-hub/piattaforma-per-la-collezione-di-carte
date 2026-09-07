@@ -1,1 +1,5 @@
-1;Pikachu;Near Mint;Italiano;false
+
+10;Bulbasaur;Mint;Italiano;false
+11;Squirtle;Good;Inglese;false
+10;Bulbasaur;Mint;Italiano;false
+11;Squirtle;Good;Inglese;false
