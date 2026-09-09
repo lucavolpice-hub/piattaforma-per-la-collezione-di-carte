@@ -14,13 +14,39 @@ public abstract class Annuncio {
     private List<CartaFisica> carte;
 
     //COSTRUTTORE
-    public Annuncio(String descrizione,CategoriaCarta categoria, Utente creatore){
-        this.idAnnuncio=++contatore;
-        this.descrizione=descrizione;
-        this.categoria=categoria;
-        this.creatore=creatore;
-        this.stato= StatoAnnuncio.DISPONIBILE;
-        this.carte=new ArrayList<>();
+    public Annuncio(String descrizione,
+                    CategoriaCarta categoria,
+                    Utente creatore) {
+
+        this.idAnnuncio = ++contatore;
+        this.descrizione = descrizione;
+        this.categoria = categoria;
+        this.creatore = creatore;
+        this.stato = StatoAnnuncio.DISPONIBILE;
+        this.carte = new ArrayList<>();
+    }
+
+    /**
+     * Costruttore utilizzato dalle DAO per ricostruire
+     * un annuncio già esistente.
+     */
+    protected Annuncio(int idAnnuncio,
+                       String descrizione,
+                       CategoriaCarta categoria,
+                       Utente creatore,
+                       StatoAnnuncio stato) {
+
+        this.idAnnuncio = idAnnuncio;
+        this.descrizione = descrizione;
+        this.categoria = categoria;
+        this.creatore = creatore;
+        this.stato = stato;
+        this.carte = new ArrayList<>();
+
+        // Mantiene il contatore allineato con gli ID già presenti
+        if (idAnnuncio > contatore) {
+            contatore = idAnnuncio;
+        }
     }
 
     //GETTER E SETTER

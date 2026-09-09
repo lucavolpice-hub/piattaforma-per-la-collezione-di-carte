@@ -31,6 +31,8 @@ public class ControllerScambi {
     public PropostaScambio inviaProposta(Utente proponente,
                                          AnnuncioScambio annuncio,
                                          List<CartaFisica> carteOfferte) {
+
+        // 1. Controlli di base
         if (proponente == null || annuncio == null) {
             return null;
         }
@@ -39,32 +41,106 @@ public class ControllerScambi {
             return null;
         }
 
-        PropostaScambio proposta =
-                new PropostaScambio(proponente, annuncio, carteOfferte);
+        // 2. Il proponente deve essere un utente della piattaforma
+        Utente utenteRegistrato =
+                controllerUtenti.cercaUtente(proponente.getUsername());
 
-        // 1) Aggiungo alla lista globale della piattaforma
-        piattaforma.getProposteScambio().add(proposta);
-
-        try {
-            // 2) Collego la proposta all'annuncio: lo stato passa a IN_TRATTATIVA
-            annuncio.aggiungiProposta(proposta);
-        } catch (Exception e) {
-            // In caso di errore imprevisto, la proposta resta comunque
-            // registrata in piattaforma, ma segnaliamo il problema.
+        if (utenteRegistrato == null) {
             return null;
         }
 
-        // 3) Collego la proposta all'utente proponente
-        controllerUtenti.aggiungiProposta(proponente, proposta);
+        // 3. Non puoi proporre uno scambio sul tuo stesso annuncio
+        if (annuncio.getCreatore().getUsername()
+                .equals(proponente.getUsername())) {
+            return null;
+        }
 
-        return proposta;
+        // 4. L'annuncio deve essere ancora disponibile
+        if (annuncio.getStato() != model.StatoAnnuncio.DISPONIBILE) {
+            return null;
+        }
+
+        // 5. Controlliamo che non ci siano carte duplicate
+        for (int i = 0; i < carteOfferte.size(); i++) {
+            for (int j = i + 1; j < carteOfferte.size(); j++) {
+
+                if (carteOfferte.get(i).getIdCarta()
+                        == carteOfferte.get(j).getIdCarta()) {
+                    return null;
+                }
+            }
+        }
+
+        // 6. Controlliamo che tutte le carte appartengano
+        //    realmente all'inventario del proponente
+        List<CartaFisica> carteDisponibili =
+                utenteRegistrato.getInventario().getCarteDisponibili();
+
+        for (CartaFisica carta : carteOfferte) {
+
+            if (carta == null) {
+                return null;
+            }
+
+            boolean posseduta = false;
+
+            for (CartaFisica cartaInventario : carteDisponibili) {
+
+                if (cartaInventario.getIdCarta()
+                        == carta.getIdCarta()) {
+
+                    posseduta = true;
+                    break;
+                }
+            }
+
+            if (!posseduta) {
+                return null;
+            }
+        }
+
+        // 7. Blocchiamo le carte prima di creare la proposta
+        for (CartaFisica carta : carteOfferte) {
+            carta.setBloccataInScambio(true);
+        }
+
+        // 8. Creiamo la proposta
+        PropostaScambio proposta =
+                new PropostaScambio(
+                        utenteRegistrato,
+                        annuncio,
+                        new ArrayList<>(carteOfferte)
+                );
+
+        // 9. Registriamo la proposta nella piattaforma
+        piattaforma.getProposteScambio().add(proposta);
+
+        try {
+            // 10. Colleghiamo la proposta all'annuncio
+            annuncio.aggiungiProposta(proposta);
+
+            // 11. Colleghiamo la proposta al proponente
+            controllerUtenti.aggiungiProposta(
+                    utenteRegistrato,
+                    proposta
+            );
+
+            return proposta;
+
+        } catch (Exception e) {
+
+            // Rollback:
+            // se qualcosa va male, sblocchiamo le carte
+            for (CartaFisica carta : carteOfferte) {
+                carta.setBloccataInScambio(false);
+            }
+
+            // e rimuoviamo la proposta dalla piattaforma
+            piattaforma.getProposteScambio().remove(proposta);
+
+            return null;
+        }
     }
-
-    /**
-     * Cerca una proposta tramite il suo ID.
-     *
-     * @return la proposta trovata, oppure null se non esiste
-     */
     public PropostaScambio cercaPropostaPerId(int idProposta) {
         for (PropostaScambio proposta : piattaforma.getProposteScambio()) {
             if (proposta.getIdProposta() == idProposta) {

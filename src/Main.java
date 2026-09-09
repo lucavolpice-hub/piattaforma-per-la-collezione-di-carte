@@ -1,19 +1,10 @@
+import controller.ControllerScambi;
 import controller.ControllerUtenti;
 import controller.Piattaforma;
-
-import dao.AnnuncioDAO;
-import dao.AnnuncioFileDAO;
-import dao.CartaFisicaDAO;
-import dao.CartaFisicaFileDAO;
-import dao.PropostaScambioDAO;
-import dao.PropostaScambioFileDAO;
-import dao.UtenteDAO;
-import dao.UtenteFileDAO;
 
 import model.Annuncio;
 import model.AnnuncioScambio;
 import model.CartaFisica;
-import model.CategoriaCarta;
 import model.PropostaScambio;
 import model.Utente;
 
@@ -24,159 +15,229 @@ public class Main {
 
     public static void main(String[] args) {
 
-        // =============================
-        // CARICHIAMO GLI UTENTI ESISTENTI
-        // =============================
-
-        List<Annuncio> listaAnnunci = new ArrayList<>();
-        List<PropostaScambio> listaProposte = new ArrayList<>();
+        // ==========================================
+        // CARICAMENTO DELLA PIATTAFORMA
+        // ==========================================
 
         Piattaforma piattaforma = new Piattaforma(
-                listaAnnunci,
-                listaProposte
+                new ArrayList<Annuncio>(),
+                new ArrayList<PropostaScambio>()
         );
 
         ControllerUtenti controllerUtenti =
                 new ControllerUtenti(piattaforma);
 
-        Utente mario = controllerUtenti.cercaUtente("mario");
-        Utente peach = controllerUtenti.cercaUtente("peach");
+        ControllerScambi controllerScambi =
+                new ControllerScambi(
+                        piattaforma,
+                        controllerUtenti
+                );
+
+        // ==========================================
+        // RECUPERIAMO GLI UTENTI
+        // ==========================================
+
+        Utente mario =
+                controllerUtenti.cercaUtente("mario");
+
+        Utente peach =
+                controllerUtenti.cercaUtente("peach");
+
+        System.out.println("=== UTENTI ===");
+        System.out.println("Mario: " + (mario != null));
+        System.out.println("Peach: " + (peach != null));
 
         if (mario == null || peach == null) {
             System.out.println(
-                    "Errore: mario o peach non sono presenti in utenti.txt"
+                    "Impossibile continuare: utenti mancanti."
             );
             return;
         }
 
-        // =============================
-        // CREIAMO LE DAO CONDIVISE
-        // =============================
+        // ==========================================
+        // RECUPERIAMO L'ANNUNCIO
+        // ==========================================
 
-        UtenteDAO utenteDAO = new UtenteFileDAO();
-        CartaFisicaDAO cartaDAO = new CartaFisicaFileDAO();
-        AnnuncioDAO annuncioDAO = new AnnuncioFileDAO(utenteDAO);
-        PropostaScambioDAO propostaDAO = new PropostaScambioFileDAO(
-                utenteDAO,
-                annuncioDAO,
-                cartaDAO
+        AnnuncioScambio annuncio = null;
+
+        for (Annuncio a : piattaforma.getAnnuncio()) {
+            if (a instanceof AnnuncioScambio) {
+                annuncio = (AnnuncioScambio) a;
+                break;
+            }
+        }
+
+        System.out.println("\n=== ANNUNCIO ===");
+
+        if (annuncio == null) {
+            System.out.println("Nessun annuncio di scambio trovato.");
+            return;
+        }
+
+        System.out.println(
+                "Annuncio: #" + annuncio.getIdAnnuncio()
+                        + " - "
+                        + annuncio.getDescrizione()
         );
 
-        // =============================
-        // CREIAMO UN ANNUNCIO DI SCAMBIO DI MARIO
-        // =============================
-
-        AnnuncioScambio annuncioScambio = new AnnuncioScambio(
-                "Scambio Charizard",
-                CategoriaCarta.CARTA_SINGOLA,
-                mario,
-                150.0
+        System.out.println(
+                "Creatore: "
+                        + annuncio.getCreatore().getUsername()
         );
 
-        boolean annuncioSalvato = annuncioDAO.salva(annuncioScambio);
-
-        System.out.println("=== ANNUNCIO CREATO DA MARIO ===");
-        System.out.println("Annuncio salvato: " + annuncioSalvato);
-
-        // =============================
-        // CREIAMO LE CARTE OFFERTE DA PEACH
-        // =============================
-
-        CartaFisica carta1 = new CartaFisica(
-                10,
-                "Bulbasaur",
-                "Mint",
-                "Italiano"
+        System.out.println(
+                "Stato: " + annuncio.getStato()
         );
 
-        CartaFisica carta2 = new CartaFisica(
-                11,
-                "Squirtle",
-                "Good",
-                "Inglese"
-        );
+        // ==========================================
+        // INVENTARIO DI PEACH
+        // ==========================================
 
-        cartaDAO.salva(carta1);
-        cartaDAO.salva(carta2);
+        System.out.println("\n=== INVENTARIO PEACH ===");
 
-        System.out.println("\n=== CARTE DI PEACH SALVATE ===");
-        System.out.println("Carta 1: " + carta1);
-        System.out.println("Carta 2: " + carta2);
+        for (CartaFisica carta :
+                peach.getInventario().getCarte()) {
 
-        // =============================
-        // PEACH FA UNA PROPOSTA DI SCAMBIO
-        // =============================
-
-        List<CartaFisica> carteOfferte = new ArrayList<>();
-        carteOfferte.add(carta1);
-        carteOfferte.add(carta2);
-
-        PropostaScambio proposta = new PropostaScambio(
-                peach,
-                annuncioScambio,
-                carteOfferte
-        );
-
-        boolean propostaSalvata = propostaDAO.salva(proposta);
-
-        System.out.println("\n=== PROPOSTA DI PEACH ===");
-        System.out.println("Proposta salvata: " + propostaSalvata);
-
-        // =============================
-        // LEGGIAMO TUTTE LE PROPOSTE DAL FILE
-        // =============================
-
-        System.out.println("\n=== TUTTE LE PROPOSTE NEL FILE ===");
-
-        for (PropostaScambio p : propostaDAO.trovaTutte()) {
-            System.out.println(p);
             System.out.println(
-                    "  Proponente: " + p.getProponente().getUsername()
+                    "#" + carta.getIdCarta()
+                            + " | "
+                            + carta.getNomeCarta()
+                            + " | bloccata: "
+                            + carta.isBloccataInScambio()
             );
-            System.out.println(
-                    "  Annuncio ricevuto: "
-                            + p.getAnnuncioRicevuto().getDescrizione()
-            );
+        }
 
-            System.out.print("  Carte offerte: ");
+        // ==========================================
+        // RECUPERIAMO BULBASAUR E SQUIRTLE
+        // ==========================================
 
-            for (CartaFisica carta : p.getCarteOfferte()) {
-                System.out.print(carta.getNomeCarta() + " ");
+        CartaFisica bulbasaur = null;
+        CartaFisica squirtle = null;
+
+        for (CartaFisica carta :
+                peach.getInventario().getCarte()) {
+
+            if (carta.getIdCarta() == 10) {
+                bulbasaur = carta;
             }
 
-            System.out.println();
+            if (carta.getIdCarta() == 11) {
+                squirtle = carta;
+            }
         }
 
-        // =============================
-        // RICERCA PER ID
-        // =============================
-
-        System.out.println("\n=== RICERCA PROPOSTA PER ID ===");
-
-        PropostaScambio propostaTrovata =
-                propostaDAO.cercaPerId(proposta.getIdProposta());
-
-        if (propostaTrovata != null) {
-            System.out.println("Trovata: " + propostaTrovata);
-        } else {
-            System.out.println("Proposta non trovata");
+        if (bulbasaur == null || squirtle == null) {
+            System.out.println(
+                    "\nMancano Bulbasaur o Squirtle nell'inventario di Peach."
+            );
+            return;
         }
 
-        // =============================
-        // ELIMINAZIONE
-        // =============================
+        // ==========================================
+        // TEST 1: PROPOSTA VALIDA
+        // ==========================================
 
-        System.out.println("\n=== ELIMINAZIONE PROPOSTA ===");
+        System.out.println(
+                "\n=== TEST 1: PROPOSTA VALIDA ==="
+        );
 
-        boolean eliminata =
-                propostaDAO.elimina(proposta.getIdProposta());
+        List<CartaFisica> carteValide = new ArrayList<>();
+        carteValide.add(bulbasaur);
+        carteValide.add(squirtle);
 
-        System.out.println("Proposta eliminata: " + eliminata);
+        PropostaScambio propostaValida =
+                controllerScambi.inviaProposta(
+                        peach,
+                        annuncio,
+                        carteValide
+                );
 
-        System.out.println("\n=== PROPOSTE RIMANENTI ===");
+        System.out.println(
+                "Proposta creata: "
+                        + (propostaValida != null)
+        );
 
-        for (PropostaScambio p : propostaDAO.trovaTutte()) {
-            System.out.println(p);
-        }
+        System.out.println(
+                "Bulbasaur bloccata: "
+                        + bulbasaur.isBloccataInScambio()
+        );
+
+        System.out.println(
+                "Squirtle bloccata: "
+                        + squirtle.isBloccataInScambio()
+        );
+
+        System.out.println(
+                "Numero proposte piattaforma: "
+                        + piattaforma.getProposteScambio().size()
+        );
+
+        // ==========================================
+        // TEST 2: CARTA NON POSSEDUTA
+        // ==========================================
+
+        System.out.println(
+                "\n=== TEST 2: CARTA NON POSSEDUTA ==="
+        );
+
+        CartaFisica cartaFalsa =
+                new CartaFisica(
+                        999,
+                        "Charizard",
+                        "Mint",
+                        "Italiano"
+                );
+
+        List<CartaFisica> carteNonPossedute =
+                new ArrayList<>();
+
+        carteNonPossedute.add(cartaFalsa);
+
+        PropostaScambio propostaNonValida =
+                controllerScambi.inviaProposta(
+                        peach,
+                        annuncio,
+                        carteNonPossedute
+                );
+
+        System.out.println(
+                "Proposta creata: "
+                        + (propostaNonValida != null)
+        );
+
+        System.out.println(
+                "Numero proposte piattaforma: "
+                        + piattaforma.getProposteScambio().size()
+        );
+
+        // ==========================================
+        // TEST 3: CARTA GIÀ BLOCCATA
+        // ==========================================
+
+        System.out.println(
+                "\n=== TEST 3: CARTA GIÀ BLOCCATA ==="
+        );
+
+        List<CartaFisica> cartaGiaBloccata =
+                new ArrayList<>();
+
+        cartaGiaBloccata.add(bulbasaur);
+
+        PropostaScambio secondaProposta =
+                controllerScambi.inviaProposta(
+                        peach,
+                        annuncio,
+                        cartaGiaBloccata
+                );
+
+        System.out.println(
+                "Seconda proposta creata: "
+                        + (secondaProposta != null)
+        );
+
+        System.out.println(
+                "Numero proposte piattaforma: "
+                        + piattaforma.getProposteScambio().size()
+        );
     }
 }

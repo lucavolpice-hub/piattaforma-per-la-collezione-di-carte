@@ -1,5 +1,5 @@
 package dao;
-
+import model.StatoProposta;
 import model.AnnuncioScambio;
 import model.Annuncio;
 import model.CartaFisica;
@@ -180,8 +180,9 @@ public class PropostaScambioFileDAO implements PropostaScambioDAO {
             );
         }
 
+        int idProposta = Integer.parseInt(dati[0]);
         LocalDate data = LocalDate.parse(dati[1]);
-        StatoAnnuncio stato = StatoAnnuncio.valueOf(dati[2]);
+        StatoProposta stato = StatoProposta.valueOf(dati[2]);
         String usernameProponente = dati[3];
         int idAnnuncioRicevuto = Integer.parseInt(dati[4]);
         String idCarteConcatenati = dati[5];
@@ -198,7 +199,8 @@ public class PropostaScambioFileDAO implements PropostaScambioDAO {
             return null;
         }
 
-        AnnuncioScambio annuncioRicevuto = (AnnuncioScambio) annuncioGenerico;
+        AnnuncioScambio annuncioRicevuto =
+                (AnnuncioScambio) annuncioGenerico;
 
         List<CartaFisica> carteOfferte = new ArrayList<>();
 
@@ -215,15 +217,14 @@ public class PropostaScambioFileDAO implements PropostaScambioDAO {
             }
         }
 
-        PropostaScambio proposta = new PropostaScambio(
+        return new PropostaScambio(
+                idProposta,
+                data,
+                stato,
                 proponente,
                 annuncioRicevuto,
                 carteOfferte
         );
-
-        proposta.setStato(stato);
-
-        return proposta;
     }
 
     private boolean scriviTutte(List<PropostaScambio> proposte) {

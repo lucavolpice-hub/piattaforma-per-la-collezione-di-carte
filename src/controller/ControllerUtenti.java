@@ -1,5 +1,10 @@
 package controller;
-
+import dao.AnnuncioDAO;
+import dao.AnnuncioFileDAO;
+import dao.PropostaScambioDAO;
+import dao.PropostaScambioFileDAO;
+import dao.RecensioneDAO;
+import dao.RecensioneFileDAO;
 import dao.CartaFisicaDAO;
 import dao.CartaFisicaFileDAO;
 import dao.InventarioDAO;
@@ -21,19 +26,196 @@ import java.util.List;
  */
 public class ControllerUtenti {
 
+
+    private final InventarioDAO inventarioDAO;
+    private final AnnuncioDAO annuncioDAO;
+    private final PropostaScambioDAO propostaDAO;
+    private final RecensioneDAO recensioneDAO;
     private final Piattaforma piattaforma;
     private final UtenteDAO utenteDAO;
     private final CartaFisicaDAO cartaDAO;
-    private final InventarioDAO inventarioDAO;
 
     public ControllerUtenti(Piattaforma piattaforma) {
         this.piattaforma = piattaforma;
+
         this.utenteDAO = new UtenteFileDAO();
         this.cartaDAO = new CartaFisicaFileDAO();
         this.inventarioDAO = new InventarioFileDAO();
 
+        this.annuncioDAO = new AnnuncioFileDAO(utenteDAO);
+
+        this.propostaDAO = new PropostaScambioFileDAO(
+                utenteDAO,
+                annuncioDAO,
+                cartaDAO
+        );
+
+        this.recensioneDAO = new RecensioneFileDAO(utenteDAO);
+
+        // Ordine importante:
         caricaUtentiDalFile();
         caricaInventariDalFile();
+        caricaAnnunciDalFile();
+        caricaProposteDalFile();
+        caricaRecensioniDalFile();
+    }
+    private void caricaAnnunciDalFile() {
+        List<Annuncio> annunciSalvati = annuncioDAO.trovaTutti();
+
+        for (Annuncio annuncioSalvato : annunciSalvati) {
+
+            // Recuperiamo l'utente già presente nella piattaforma
+            Utente creatore = cercaUtente(
+                    annuncioSalvato.getCreatore().getUsername()
+            );
+
+            if (creatore == null) {
+                continue;
+            }
+
+            Annuncio annuncio;
+
+            if (annuncioSalvato instanceof model.AnnuncioVendita) {
+
+                model.AnnuncioVendita vendita =
+                        (model.AnnuncioVendita) annuncioSalvato;
+
+                annuncio = new model.AnnuncioVendita(
+                        vendita.getIdAnnuncio(),
+                        vendita.getDescrizione(),
+                        vendita.getCategoria(),
+                        creatore,
+                        vendita.getPrezzo(),
+                        vendita.getStato()
+                );
+
+            } else if (annuncioSalvato instanceof model.AnnuncioScambio) {
+
+                model.AnnuncioScambio scambio =
+                        (model.AnnuncioScambio) annuncioSalvato;
+
+                annuncio = new model.AnnuncioScambio(
+                        scambio.getIdAnnuncio(),
+                        scambio.getDescrizione(),
+                        scambio.getCategoria(),
+                        creatore,
+                        scambio.getValoreDiRiferimento(),
+                        scambio.getStato()
+                );
+
+            } else {
+                continue;
+            }
+
+            piattaforma.getAnnuncio().add(annuncio);
+
+            if (!creatore.getAnnunciCreati().contains(annuncio)) {
+                creatore.aggiungiAnnuncio(annuncio);
+            }
+        }
+    }
+    private void caricaProposteDalFile() {
+        List<PropostaScambio> proposteSalvate =
+                propostaDAO.trovaTutte();
+
+        for (PropostaScambio propostaSalvata : proposteSalvate) {
+
+            Utente proponente = cercaUtente(
+                    propostaSalvata.getProponente().getUsername()
+            );
+
+            if (proponente == null) {
+                continue;
+            }
+
+            Annuncio annuncioGenerico = cercaAnnuncioInPiattaforma(
+                    propostaSalvata.getAnnuncioRicevuto().getIdAnnuncio()
+            );
+
+            if (!(annuncioGenerico instanceof model.AnnuncioScambio)) {
+                continue;
+            }
+
+            model.AnnuncioScambio annuncioRicevuto =
+                    (model.AnnuncioScambio) annuncioGenerico;
+
+            List<CartaFisica> carteOfferte = new ArrayList<>();
+
+            for (CartaFisica cartaSalvata :
+                    propostaSalvata.getCarteOfferte()) {
+
+                CartaFisica cartaReale =
+                        cercaCartaNelSistema(cartaSalvata.getIdCarta());
+
+                if (cartaReale != null) {
+                    carteOfferte.add(cartaReale);
+                }
+            }
+
+            PropostaScambio proposta = new PropostaScambio(
+                    propostaSalvata.getIdProposta(),
+                    propostaSalvata.getData(),
+                    propostaSalvata.getStato(),
+                    proponente,
+                    annuncioRicevuto,
+                    carteOfferte
+            );
+
+            piattaforma.getProposteScambio().add(proposta);
+
+            if (!proponente.getProposteEffettuate().contains(proposta)) {
+                proponente.aggiungiProposta(proposta);
+            }
+        }
+    }
+    private Annuncio cercaAnnuncioInPiattaforma(int idAnnuncio) {
+        for (Annuncio annuncio : piattaforma.getAnnuncio()) {
+            if (annuncio.getIdAnnuncio() == idAnnuncio) {
+                return annuncio;
+            }
+        }
+
+        return null;
+    }
+    private CartaFisica cercaCartaNelSistema(int idCarta) {
+        for (Utente utente : piattaforma.getUtenti()) {
+            for (CartaFisica carta : utente.getInventario().getCarteDisponibili()) {
+                if (carta.getIdCarta() == idCarta) {
+                    return carta;
+                }
+            }
+        }
+
+        return null;
+    }
+    private void caricaRecensioniDalFile() {
+        List<Recensione> recensioniSalvate =
+                recensioneDAO.trovaTutte();
+
+        for (Recensione recensioneSalvata : recensioniSalvate) {
+
+            Utente autore = cercaUtente(
+                    recensioneSalvata.getAutore().getUsername()
+            );
+
+            Utente destinatario = cercaUtente(
+                    recensioneSalvata.getDestinatario().getUsername()
+            );
+
+            if (autore == null || destinatario == null) {
+                continue;
+            }
+
+            Recensione recensione = new Recensione(
+                    recensioneSalvata.getId(),
+                    recensioneSalvata.getVoto(),
+                    recensioneSalvata.getCommento(),
+                    autore,
+                    destinatario
+            );
+
+            destinatario.aggiungiRecensioneRicevuta(recensione);
+        }
     }
 
     private void caricaUtentiDalFile() {

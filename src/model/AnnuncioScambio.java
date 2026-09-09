@@ -15,6 +15,17 @@ public class AnnuncioScambio extends Annuncio {
         this.valoreDiRiferimento = valoreDiRiferimento;
         this.proposte = new ArrayList<>();
     }
+    public AnnuncioScambio(int idAnnuncio,
+                           String descrizione,
+                           CategoriaCarta categoria,
+                           Utente creatore,
+                           double valoreDiRiferimento,
+                           StatoAnnuncio stato) {
+
+        super(idAnnuncio, descrizione, categoria, creatore, stato);
+        this.valoreDiRiferimento = valoreDiRiferimento;
+        this.proposte = new ArrayList<>();
+    }
 
     public double getValoreDiRiferimento() {
         return valoreDiRiferimento;

@@ -192,24 +192,30 @@ public class AnnuncioFileDAO implements AnnuncioDAO {
         Annuncio annuncio;
 
         if (tipo.equals("VENDITA")) {
+
             annuncio = new AnnuncioVendita(
+                    idAnnuncio,
                     descrizione,
                     categoria,
                     creatore,
-                    valoreNumerico
+                    valoreNumerico,
+                    stato
             );
+
         } else if (tipo.equals("SCAMBIO")) {
+
             annuncio = new AnnuncioScambio(
+                    idAnnuncio,
                     descrizione,
                     categoria,
                     creatore,
-                    valoreNumerico
+                    valoreNumerico,
+                    stato
             );
+
         } else {
             return null;
         }
-
-        annuncio.setStato(stato);
 
         return annuncio;
     }
