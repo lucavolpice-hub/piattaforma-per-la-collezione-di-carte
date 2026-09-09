@@ -2,7 +2,8 @@ package controller;
 
 import java.util.ArrayList;
 import java.util.List;
-
+import dao.CartaFisicaDAO;
+import dao.CartaFisicaFileDAO;
 import model.AnnuncioScambio;
 import model.CartaFisica;
 import model.PropostaScambio;
@@ -15,11 +16,15 @@ public class ControllerScambi {
 
     private final Piattaforma piattaforma;
     private final ControllerUtenti controllerUtenti;
+    private final CartaFisicaDAO cartaDAO;
+
 
     public ControllerScambi(Piattaforma piattaforma,
                             ControllerUtenti controllerUtenti) {
+
         this.piattaforma = piattaforma;
         this.controllerUtenti = controllerUtenti;
+        this.cartaDAO = new CartaFisicaFileDAO();
     }
 
     /**
@@ -100,8 +105,27 @@ public class ControllerScambi {
         }
 
         // 7. Blocchiamo le carte prima di creare la proposta
+        List<CartaFisica> carteBloccate = new ArrayList<>();
+
         for (CartaFisica carta : carteOfferte) {
+
             carta.setBloccataInScambio(true);
+
+            if (!cartaDAO.aggiorna(carta)) {
+
+                // Rollback delle carte già bloccate
+                for (CartaFisica cartaBloccata : carteBloccate) {
+                    cartaBloccata.setBloccataInScambio(false);
+                    cartaDAO.aggiorna(cartaBloccata);
+                }
+
+                // La carta che ha appena fallito viene ripristinata
+                carta.setBloccataInScambio(false);
+
+                return null;
+            }
+
+            carteBloccate.add(carta);
         }
 
         // 8. Creiamo la proposta

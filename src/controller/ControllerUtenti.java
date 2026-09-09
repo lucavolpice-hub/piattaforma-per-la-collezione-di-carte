@@ -42,7 +42,7 @@ public class ControllerUtenti {
         this.cartaDAO = new CartaFisicaFileDAO();
         this.inventarioDAO = new InventarioFileDAO();
 
-        this.annuncioDAO = new AnnuncioFileDAO(utenteDAO);
+        this.annuncioDAO = new AnnuncioFileDAO(utenteDAO,cartaDAO);
 
         this.propostaDAO = new PropostaScambioFileDAO(
                 utenteDAO,

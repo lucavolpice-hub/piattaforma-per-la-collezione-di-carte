@@ -1,5 +1,5 @@
 package dao;
-
+import model.CartaFisica;
 import model.Annuncio;
 import model.AnnuncioScambio;
 import model.AnnuncioVendita;
@@ -20,10 +20,17 @@ public class AnnuncioFileDAO implements AnnuncioDAO {
 
     private final Path percorsoFile;
     private final UtenteDAO utenteDAO;
+    private final CartaFisicaDAO cartaDAO;
 
-    public AnnuncioFileDAO(UtenteDAO utenteDAO) {
+
+    public AnnuncioFileDAO(UtenteDAO utenteDAO,
+                           CartaFisicaDAO cartaDAO) {
+
         this.utenteDAO = utenteDAO;
-        percorsoFile = Paths.get("data", "annunci.txt");
+        this.cartaDAO = cartaDAO;
+
+        // Percorso del file degli annunci
+        this.percorsoFile = Paths.get("data", "annunci.txt");
 
         try {
             if (Files.notExists(percorsoFile)) {
@@ -141,20 +148,39 @@ public class AnnuncioFileDAO implements AnnuncioDAO {
     }
 
     private String convertiInRiga(Annuncio annuncio) {
+
         String tipo;
         double valoreNumerico;
 
         if (annuncio instanceof AnnuncioVendita) {
+
             tipo = "VENDITA";
             valoreNumerico = ((AnnuncioVendita) annuncio).getPrezzo();
+
         } else if (annuncio instanceof AnnuncioScambio) {
+
             tipo = "SCAMBIO";
             valoreNumerico =
                     ((AnnuncioScambio) annuncio).getValoreDiRiferimento();
+
         } else {
+
             throw new IllegalArgumentException(
-                    "Tipo di annuncio non gestito: " + annuncio.getClass()
+                    "Tipo di annuncio non gestito: "
+                            + annuncio.getClass()
             );
+        }
+
+        // Costruiamo la parte relativa alle carte
+        StringBuilder idsCarte = new StringBuilder();
+
+        for (CartaFisica carta : annuncio.getCarte()) {
+
+            if (idsCarte.length() > 0) {
+                idsCarte.append(",");
+            }
+
+            idsCarte.append(carta.getIdCarta());
         }
 
         return tipo + ";"
@@ -163,13 +189,14 @@ public class AnnuncioFileDAO implements AnnuncioDAO {
                 + annuncio.getCategoria() + ";"
                 + annuncio.getStato() + ";"
                 + annuncio.getCreatore().getUsername() + ";"
-                + valoreNumerico;
+                + valoreNumerico + ";"
+                + idsCarte;
     }
 
     private Annuncio convertiInAnnuncio(String riga) {
         String[] dati = riga.split(";", -1);
 
-        if (dati.length != 7) {
+        if (dati.length != 8) {
             throw new IllegalArgumentException(
                     "Formato annuncio non valido: " + riga
             );
@@ -182,6 +209,7 @@ public class AnnuncioFileDAO implements AnnuncioDAO {
         StatoAnnuncio stato = StatoAnnuncio.valueOf(dati[4]);
         String usernameCreatore = dati[5];
         double valoreNumerico = Double.parseDouble(dati[6]);
+        String idsCarte = dati[7];
 
         Utente creatore = utenteDAO.cercaPerUsername(usernameCreatore);
 
@@ -215,6 +243,24 @@ public class AnnuncioFileDAO implements AnnuncioDAO {
 
         } else {
             return null;
+        }
+        if (!idsCarte.isBlank()) {
+
+            String[] idCarte =
+                    idsCarte.split(",");
+
+            for (String idCartaStringa : idCarte) {
+
+                int idCarta =
+                        Integer.parseInt(idCartaStringa);
+
+                CartaFisica carta =
+                        cartaDAO.cercaPerId(idCarta);
+
+                if (carta != null) {
+                    annuncio.aggiungiCarta(carta);
+                }
+            }
         }
 
         return annuncio;

@@ -46,4 +46,7 @@ public class AnnuncioScambio extends Annuncio {
 
         this.concludi();
     }
+    public List<PropostaScambio> getProposte() {
+        return new ArrayList<>(proposte);
+    }
 }
