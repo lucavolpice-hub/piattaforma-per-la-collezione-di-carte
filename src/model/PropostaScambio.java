@@ -14,7 +14,7 @@ public class PropostaScambio {
 
     private int idProposta;
     private LocalDate data;
-    private StatoAnnuncio stato;
+    private StatoProposta stato;
     private Utente proponente;
     private AnnuncioScambio annuncioRicevuto;
     private List<CartaFisica> carteOfferte;
@@ -27,7 +27,7 @@ public class PropostaScambio {
                            List<CartaFisica> carteOfferte) {
         this.idProposta = ++contatore;
         this.data = LocalDate.now();
-        this.stato = StatoAnnuncio.IN_TRATTATIVA;
+        this.stato = StatoProposta.IN_ATTESA;
         this.proponente = proponente;
         this.annuncioRicevuto = annuncioRicevuto;
 
@@ -36,6 +36,35 @@ public class PropostaScambio {
 
         if (carteOfferte != null) {
             this.carteOfferte.addAll(carteOfferte);
+        }
+    }
+    /**
+     * Costruttore utilizzato dalla DAO per ricostruire
+     * una proposta già esistente.
+     */
+    public PropostaScambio(
+            int idProposta,
+            LocalDate data,
+            StatoProposta stato,
+            Utente proponente,
+            AnnuncioScambio annuncioRicevuto,
+            List<CartaFisica> carteOfferte
+    ) {
+
+        this.idProposta = idProposta;
+        this.data = data;
+        this.stato = stato;
+        this.proponente = proponente;
+        this.annuncioRicevuto = annuncioRicevuto;
+
+        this.carteOfferte = new ArrayList<>();
+
+        if (carteOfferte != null) {
+            this.carteOfferte.addAll(carteOfferte);
+        }
+
+        if (idProposta > contatore) {
+            contatore = idProposta;
         }
     }
 
@@ -47,11 +76,11 @@ public class PropostaScambio {
         return data;
     }
 
-    public StatoAnnuncio getStato() {
+    public StatoProposta getStato() {
         return stato;
     }
 
-    public void setStato(StatoAnnuncio stato) {
+    public void setStato(StatoProposta stato) {
         this.stato = stato;
     }
 
@@ -78,13 +107,12 @@ public class PropostaScambio {
     }
 
     public void accetta() {
-        stato = StatoAnnuncio.CONCLUSO;
+        stato = StatoProposta.ACCETTATA;
     }
 
     public void rifiuta() {
-        stato = StatoAnnuncio.DISPONIBILE;
+        stato = StatoProposta.RIFIUTATA;
     }
-
     @Override
     public String toString() {
         return "Proposta scambio #" + idProposta

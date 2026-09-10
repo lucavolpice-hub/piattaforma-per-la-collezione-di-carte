@@ -1,101 +1,270 @@
+import controller.ControllerScambi;
 import controller.ControllerUtenti;
 import controller.Piattaforma;
 
 import model.Annuncio;
+import model.AnnuncioScambio;
 import model.CartaFisica;
 import model.PropostaScambio;
 import model.Utente;
 
 import java.util.ArrayList;
-import java.util.List;
 
 public class Main {
 
     public static void main(String[] args) {
 
-        // =============================
-        // PRIMA APERTURA DELL'APPLICAZIONE
-        // =============================
+        // ==========================================
+        // CARICAMENTO DELLA PIATTAFORMA
+        // ==========================================
 
-        List<Annuncio> listaAnnunci = new ArrayList<>();
-        List<PropostaScambio> listaProposte = new ArrayList<>();
-
-        Piattaforma piattaforma = new Piattaforma(
-                listaAnnunci,
-                listaProposte
-        );
+        Piattaforma piattaforma =
+                new Piattaforma(
+                        new ArrayList<Annuncio>(),
+                        new ArrayList<PropostaScambio>()
+                );
 
         ControllerUtenti controllerUtenti =
                 new ControllerUtenti(piattaforma);
 
-        Utente mario = controllerUtenti.cercaUtente("mario");
-
-        if (mario == null) {
-            System.out.println("Errore: Mario non è presente in utenti.txt");
-            return;
-        }
-
-        CartaFisica pikachu = new CartaFisica(
-                1,
-                "Pikachu",
-                "Near Mint",
-                "Italiano"
-        );
-
-        boolean aggiunta = controllerUtenti.aggiungiCartaInventario(
-                mario,
-                pikachu
-        );
-
-        System.out.println("=== AGGIUNTA CARTA ===");
-        System.out.println("Pikachu aggiunta a Mario: " + aggiunta);
-
-        System.out.println("\n=== CARTE DI MARIO IN MEMORIA ===");
-
-        for (CartaFisica carta :
-                mario.getInventario().getCarteDisponibili()) {
-
-            System.out.println(
-                    "ID: " + carta.getIdCarta()
-                            + " | " + carta
-            );
-        }
+        ControllerScambi controllerScambi =
+                new ControllerScambi(
+                        piattaforma,
+                        controllerUtenti
+                );
 
         // ==========================================
-        // SIMULAZIONE: CHIUSURA E RIAPERTURA PROGRAMMA
+        // RECUPERIAMO MARIO E PEACH
         // ==========================================
 
-        System.out.println("\n=== RIAVVIO SIMULATO ===");
+        Utente mario =
+                controllerUtenti.cercaUtente("mario");
 
-        List<Annuncio> nuoviAnnunci = new ArrayList<>();
-        List<PropostaScambio> nuoveProposte = new ArrayList<>();
+        Utente peach =
+                controllerUtenti.cercaUtente("peach");
 
-        Piattaforma piattaformaDopoRiavvio = new Piattaforma(
-                nuoviAnnunci,
-                nuoveProposte
-        );
-
-        ControllerUtenti controllerDopoRiavvio =
-                new ControllerUtenti(piattaformaDopoRiavvio);
-
-        Utente marioDopoRiavvio =
-                controllerDopoRiavvio.cercaUtente("mario");
-
-        if (marioDopoRiavvio == null) {
+        if (mario == null || peach == null) {
             System.out.println(
-                    "Errore: Mario non è stato ricaricato dopo il riavvio"
+                    "Errore: Mario o Peach non trovati."
             );
             return;
         }
 
-        System.out.println("\n=== CARTE DI MARIO DOPO IL RIAVVIO ===");
+        // ==========================================
+        // STATO INIZIALE
+        // ==========================================
+
+        System.out.println("=== STATO INIZIALE ===");
+
+        stampaInventario(mario);
+        stampaInventario(peach);
+
+        // ==========================================
+        // CERCHIAMO L'ANNUNCIO
+        // ==========================================
+
+        AnnuncioScambio annuncio = null;
+
+        for (Annuncio a :
+                piattaforma.getAnnuncio()) {
+
+            if (a instanceof AnnuncioScambio) {
+                annuncio = (AnnuncioScambio) a;
+                break;
+            }
+        }
+
+        if (annuncio == null) {
+            System.out.println(
+                    "Nessun annuncio di scambio trovato."
+            );
+            return;
+        }
+
+        System.out.println(
+                "\n=== ANNUNCIO ==="
+        );
+
+        System.out.println(
+                "ID: #" + annuncio.getIdAnnuncio()
+        );
+
+        System.out.println(
+                "Descrizione: "
+                        + annuncio.getDescrizione()
+        );
+
+        System.out.println(
+                "Creatore: "
+                        + annuncio.getCreatore().getUsername()
+        );
+
+        System.out.println(
+                "Stato: "
+                        + annuncio.getStato()
+        );
+
+        System.out.println("Carte:");
 
         for (CartaFisica carta :
-                marioDopoRiavvio.getInventario().getCarteDisponibili()) {
+                annuncio.getCarte()) {
 
             System.out.println(
-                    "ID: " + carta.getIdCarta()
-                            + " | " + carta
+                    "#" + carta.getIdCarta()
+                            + " | "
+                            + carta.getNomeCarta()
+                            + " | bloccata: "
+                            + carta.isBloccataInScambio()
+            );
+        }
+
+        // ==========================================
+        // CERCHIAMO UNA PROPOSTA DI PEACH
+        // ==========================================
+
+        PropostaScambio proposta = null;
+
+        for (PropostaScambio p :
+                piattaforma.getProposteScambio()) {
+
+            if (p.getProponente()
+                    .getUsername()
+                    .equalsIgnoreCase("peach")
+                    &&
+                    p.getAnnuncioRicevuto()
+                            .getIdAnnuncio()
+                            == annuncio.getIdAnnuncio()
+                    &&
+                    p.getStato()
+                            == model.StatoProposta.IN_ATTESA) {
+
+                proposta = p;
+                break;
+            }
+        }
+
+        if (proposta == null) {
+            System.out.println(
+                    "\nNessuna proposta di Peach in attesa."
+            );
+            return;
+        }
+
+        System.out.println(
+                "\n=== PROPOSTA ==="
+        );
+
+        System.out.println(
+                "Proposta #" + proposta.getIdProposta()
+        );
+
+        System.out.println(
+                "Stato: " + proposta.getStato()
+        );
+
+        System.out.println(
+                "Proponente: "
+                        + proposta.getProponente().getUsername()
+        );
+
+        System.out.println("Carte offerte:");
+
+        for (CartaFisica carta :
+                proposta.getCarteOfferte()) {
+
+            System.out.println(
+                    "#" + carta.getIdCarta()
+                            + " | "
+                            + carta.getNomeCarta()
+                            + " | bloccata: "
+                            + carta.isBloccataInScambio()
+            );
+        }
+
+        // ==========================================
+        // ACCETTIAMO LA PROPOSTA
+        // ==========================================
+
+        System.out.println(
+                "\n=== ACCETTAZIONE ==="
+        );
+
+        boolean accettata =
+                controllerScambi.accettaProposta(
+                        mario,
+                        proposta
+                );
+
+        System.out.println(
+                "Accettazione riuscita: "
+                        + accettata
+        );
+
+        // ==========================================
+        // STATO FINALE IN MEMORIA
+        // ==========================================
+
+        System.out.println(
+                "\n=== STATO FINALE ==="
+        );
+
+        System.out.println(
+                "Stato proposta: "
+                        + proposta.getStato()
+        );
+
+        System.out.println(
+                "Stato annuncio: "
+                        + annuncio.getStato()
+        );
+
+        stampaInventario(mario);
+        stampaInventario(peach);
+
+        System.out.println(
+                "\n=== STATO CARTE ==="
+        );
+
+        for (CartaFisica carta :
+                mario.getInventario().getCarte()) {
+
+            System.out.println(
+                    "#" + carta.getIdCarta()
+                            + " | "
+                            + carta.getNomeCarta()
+                            + " | bloccata: "
+                            + carta.isBloccataInScambio()
+            );
+        }
+
+        for (CartaFisica carta :
+                peach.getInventario().getCarte()) {
+
+            System.out.println(
+                    "#" + carta.getIdCarta()
+                            + " | "
+                            + carta.getNomeCarta()
+                            + " | bloccata: "
+                            + carta.isBloccataInScambio()
+            );
+        }
+    }
+
+    private static void stampaInventario(Utente utente) {
+
+        System.out.println(
+                "\n" + utente.getUsername() + ":"
+        );
+
+        for (CartaFisica carta :
+                utente.getInventario().getCarte()) {
+
+            System.out.println(
+                    "  #" + carta.getIdCarta()
+                            + " | "
+                            + carta.getNomeCarta()
+                            + " | bloccata: "
+                            + carta.isBloccataInScambio()
             );
         }
     }

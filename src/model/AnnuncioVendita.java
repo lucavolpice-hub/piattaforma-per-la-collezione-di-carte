@@ -10,6 +10,16 @@ public class AnnuncioVendita extends Annuncio {
         super(descrizione, categoria, creatore);
         this.prezzo = prezzo;
     }
+    public AnnuncioVendita(int idAnnuncio,
+                           String descrizione,
+                           CategoriaCarta categoria,
+                           Utente creatore,
+                           double prezzo,
+                           StatoAnnuncio stato) {
+
+        super(idAnnuncio, descrizione, categoria, creatore, stato);
+        this.prezzo = prezzo;
+    }
 
 
     public double getPrezzo() {

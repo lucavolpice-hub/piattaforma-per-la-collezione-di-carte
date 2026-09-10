@@ -18,6 +18,28 @@ public class Recensione {
         this.autore=autore;
         this.destinatario=destinatario;
     }
+
+    /**
+     * Ricostruisce una recensione già salvata, mantenendone l'identificativo.
+     * Serve alle DAO basate su file quando rileggono le recensioni dal disco.
+     */
+    public Recensione(
+            int id,
+            int voto,
+            String commento,
+            Utente autore,
+            Utente destinatario
+    ) {
+        this.id = id;
+        this.voto = voto;
+        this.commento = commento;
+        this.autore = autore;
+        this.destinatario = destinatario;
+
+        if (id > contatore) {
+            contatore = id;
+        }
+    }
     
     //GETTER E SETTER
     public int getId(){

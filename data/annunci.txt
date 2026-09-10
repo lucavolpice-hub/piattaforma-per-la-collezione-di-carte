@@ -1,0 +1,1 @@
+SCAMBIO;1;Scambio Charizard;CARTA_SINGOLA;IN_TRATTATIVA;mario;150.0;25
