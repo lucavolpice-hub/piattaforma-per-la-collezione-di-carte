@@ -13,6 +13,28 @@ import java.util.ArrayList;
 public class Main {
 
     public static void main(String[] args) {
+        System.out.println("=== DEBUG ===");
+        System.out.println(
+                "Working directory: "
+                        + System.getProperty("user.dir")
+        );
+
+        System.out.println(
+                "File inventari: "
+                        + java.nio.file.Paths
+                        .get("data", "inventari.txt")
+                        .toAbsolutePath()
+        );
+
+        System.out.println("Contenuto inventari.txt:");
+
+        try {
+            java.nio.file.Files.lines(
+                    java.nio.file.Paths.get("data", "inventari.txt")
+            ).forEach(System.out::println);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
         // ==========================================
         // CARICAMENTO DELLA PIATTAFORMA

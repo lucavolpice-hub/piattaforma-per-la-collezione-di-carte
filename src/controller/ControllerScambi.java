@@ -10,6 +10,13 @@ import model.PropostaScambio;
 import model.Utente;
 import dao.InventarioDAO;
 import dao.InventarioFileDAO;
+import dao.AnnuncioDAO;
+import dao.AnnuncioFileDAO;
+import dao.PropostaScambioDAO;
+import dao.PropostaScambioFileDAO;
+import dao.UtenteDAO;
+import dao.UtenteFileDAO;
+
 /**
  * Gestisce l'invio, la ricerca e la gestione delle proposte di scambio.
  */
@@ -19,14 +26,34 @@ public class ControllerScambi {
     private final ControllerUtenti controllerUtenti;
     private final CartaFisicaDAO cartaDAO;
     private final InventarioDAO inventarioDAO;
+    private final UtenteDAO utenteDAO;
+    private final AnnuncioDAO annuncioDAO;
+    private final PropostaScambioDAO propostaDAO;
 
     public ControllerScambi(Piattaforma piattaforma,
                             ControllerUtenti controllerUtenti) {
 
         this.piattaforma = piattaforma;
         this.controllerUtenti = controllerUtenti;
+
+        this.utenteDAO = new UtenteFileDAO();
+
         this.cartaDAO = new CartaFisicaFileDAO();
+
         this.inventarioDAO = new InventarioFileDAO();
+
+        this.annuncioDAO =
+                new AnnuncioFileDAO(
+                        utenteDAO,
+                        cartaDAO
+                );
+
+        this.propostaDAO =
+                new PropostaScambioFileDAO(
+                        utenteDAO,
+                        annuncioDAO,
+                        cartaDAO
+                );
     }
 
     /**
@@ -384,6 +411,13 @@ public class ControllerScambi {
         proposta.accetta();
 
         annuncio.concludi();
+        if (!propostaDAO.aggiorna(proposta)) {
+            return false;
+        }
+
+        if (!annuncioDAO.aggiorna(annuncio)) {
+            return false;
+        }
 
         // ==========================================
         // 12. RIFIUTIAMO LE ALTRE PROPOSTE
@@ -415,30 +449,59 @@ public class ControllerScambi {
 
             altraProposta.rifiuta();
 
-            // Sblocchiamo le carte della proposta rifiutata
+            if (!propostaDAO.aggiorna(altraProposta)) {
+                return false;
+            }
+
             for (CartaFisica carta :
                     altraProposta.getCarteOfferte()) {
 
                 carta.setBloccataInScambio(false);
-                cartaDAO.aggiorna(carta);
+
+                if (!cartaDAO.aggiorna(carta)) {
+                    return false;
+                }
             }
         }
-
         return true;
     }
 
-    /**
-     * Rifiuta una proposta, ma solo se è stata effettivamente
-     * registrata tramite questo controller.
-     */
+
     public boolean rifiutaProposta(PropostaScambio proposta) {
-        if (proposta == null || !piattaforma.getProposteScambio().contains(proposta)) {
-            return false;
-        }
 
-        proposta.rifiuta();
-        return true;
-    }
+            if (proposta == null) {
+                return false;
+            }
+
+            if (!piattaforma.getProposteScambio().contains(proposta)) {
+                return false;
+            }
+
+            if (proposta.getStato()
+                    != model.StatoProposta.IN_ATTESA) {
+                return false;
+            }
+
+            proposta.rifiuta();
+
+            // Sblocchiamo le carte della proposta
+            for (CartaFisica carta :
+                    proposta.getCarteOfferte()) {
+
+                carta.setBloccataInScambio(false);
+
+                if (!cartaDAO.aggiorna(carta)) {
+                    return false;
+                }
+            }
+
+            // Persistiamo lo stato della proposta
+            if (!propostaDAO.aggiorna(proposta)) {
+                return false;
+            }
+
+            return true;
+        }
 
     private boolean trasferisciCarte(
             Utente proponente,
