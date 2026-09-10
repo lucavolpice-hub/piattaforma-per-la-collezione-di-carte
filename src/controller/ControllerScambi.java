@@ -8,7 +8,8 @@ import model.AnnuncioScambio;
 import model.CartaFisica;
 import model.PropostaScambio;
 import model.Utente;
-
+import dao.InventarioDAO;
+import dao.InventarioFileDAO;
 /**
  * Gestisce l'invio, la ricerca e la gestione delle proposte di scambio.
  */
@@ -17,7 +18,7 @@ public class ControllerScambi {
     private final Piattaforma piattaforma;
     private final ControllerUtenti controllerUtenti;
     private final CartaFisicaDAO cartaDAO;
-
+    private final InventarioDAO inventarioDAO;
 
     public ControllerScambi(Piattaforma piattaforma,
                             ControllerUtenti controllerUtenti) {
@@ -25,6 +26,7 @@ public class ControllerScambi {
         this.piattaforma = piattaforma;
         this.controllerUtenti = controllerUtenti;
         this.cartaDAO = new CartaFisicaFileDAO();
+        this.inventarioDAO = new InventarioFileDAO();
     }
 
     /**
@@ -165,6 +167,7 @@ public class ControllerScambi {
             return null;
         }
     }
+
     public PropostaScambio cercaPropostaPerId(int idProposta) {
         for (PropostaScambio proposta : piattaforma.getProposteScambio()) {
             if (proposta.getIdProposta() == idProposta) {
@@ -199,19 +202,174 @@ public class ControllerScambi {
      * registrata tramite questo controller.
      */
     public boolean accettaProposta(PropostaScambio proposta) {
-        if (proposta == null || !piattaforma.getProposteScambio().contains(proposta)) {
+
+        // 1. Controlli di base
+        if (proposta == null) {
             return false;
         }
 
-        try {
-            proposta.accetta();
-            proposta.getAnnuncioRicevuto().accettaProposta(proposta);
-            return true;
-        } catch (Exception e) {
-            // In caso di errore imprevisto durante l'accettazione,
-            // restituiamo false per segnalare che l'operazione non è riuscita.
+        if (!piattaforma.getProposteScambio().contains(proposta)) {
             return false;
         }
+
+        // 2. La proposta deve essere ancora in attesa
+        if (proposta.getStato() != model.StatoProposta.IN_ATTESA) {
+            return false;
+        }
+
+        AnnuncioScambio annuncio =
+                proposta.getAnnuncioRicevuto();
+
+        if (annuncio == null) {
+            return false;
+        }
+
+        // 3. L'annuncio deve essere in trattativa
+        if (annuncio.getStato() != model.StatoAnnuncio.IN_TRATTATIVA) {
+            return false;
+        }
+
+        // 4. Recuperiamo i due utenti
+        Utente proprietarioAnnuncio =
+                annuncio.getCreatore();
+
+        Utente proponente =
+                proposta.getProponente();
+
+        if (proprietarioAnnuncio == null || proponente == null) {
+            return false;
+        }
+
+        // 5. Il proprietario non può accettare una propria proposta
+        if (proprietarioAnnuncio.getUsername()
+                .equalsIgnoreCase(proponente.getUsername())) {
+            return false;
+        }
+
+        // 6. Recuperiamo le carte coinvolte nello scambio
+        List<CartaFisica> carteRichieste =
+                annuncio.getCarte();
+
+        List<CartaFisica> carteOfferte =
+                proposta.getCarteOfferte();
+
+        if (carteRichieste == null
+                || carteRichieste.isEmpty()
+                || carteOfferte == null
+                || carteOfferte.isEmpty()) {
+            return false;
+        }
+
+        // 7. Verifichiamo che le carte dell'annuncio
+        // appartengano ancora al proprietario
+        for (CartaFisica carta : carteRichieste) {
+
+            boolean presente = false;
+
+            for (CartaFisica cartaInventario :
+                    proprietarioAnnuncio.getInventario().getCarte()) {
+
+                if (cartaInventario.getIdCarta()
+                        == carta.getIdCarta()) {
+
+                    presente = true;
+                    break;
+                }
+            }
+
+            if (!presente) {
+                return false;
+            }
+
+            // La carta dell'annuncio non deve essere già bloccata
+            if (carta.isBloccataInScambio()) {
+                return false;
+            }
+        }
+
+        // 8. Verifichiamo che le carte offerte
+        // appartengano ancora al proponente
+        for (CartaFisica carta : carteOfferte) {
+
+            boolean presente = false;
+
+            for (CartaFisica cartaInventario :
+                    proponente.getInventario().getCarte()) {
+
+                if (cartaInventario.getIdCarta()
+                        == carta.getIdCarta()) {
+
+                    presente = true;
+                    break;
+                }
+            }
+
+            if (!presente) {
+                return false;
+            }
+
+            /*
+             * Le carte offerte DEVONO essere bloccate:
+             * significa che appartengono alla proposta
+             * che stiamo accettando.
+             */
+            if (!carta.isBloccataInScambio()) {
+                return false;
+            }
+        }
+
+        // 9. Eseguiamo il trasferimento
+        boolean trasferimentoRiuscito =
+                trasferisciCarte(
+                        proponente,
+                        proprietarioAnnuncio,
+                        carteOfferte,
+                        carteRichieste
+                );
+
+        if (!trasferimentoRiuscito) {
+            return false;
+        }
+
+        // 10. La proposta viene accettata
+        proposta.accetta();
+
+        // 11. L'annuncio viene concluso
+        annuncio.concludi();
+
+        // 12. Tutte le altre proposte relative
+        // allo stesso annuncio vengono rifiutate
+        for (PropostaScambio altraProposta :
+                piattaforma.getProposteScambio()) {
+
+            if (altraProposta == proposta) {
+                continue;
+            }
+
+            if (altraProposta.getAnnuncioRicevuto()
+                    .getIdAnnuncio()
+                    != annuncio.getIdAnnuncio()) {
+                continue;
+            }
+
+            if (altraProposta.getStato()
+                    != model.StatoProposta.IN_ATTESA) {
+                continue;
+            }
+
+            altraProposta.rifiuta();
+
+            // Sblocchiamo le carte delle proposte
+            // che non sono state accettate
+            for (CartaFisica carta :
+                    altraProposta.getCarteOfferte()) {
+
+                carta.setBloccataInScambio(false);
+                cartaDAO.aggiorna(carta);
+            }
+        }
+
+        return true;
     }
 
     /**
@@ -225,5 +383,268 @@ public class ControllerScambi {
 
         proposta.rifiuta();
         return true;
+    }
+
+    private boolean trasferisciCarte(
+            Utente proponente,
+            Utente proprietarioAnnuncio,
+            List<CartaFisica> carteOfferte,
+            List<CartaFisica> carteRichieste
+    ) {
+
+        if (proponente == null
+                || proprietarioAnnuncio == null
+                || carteOfferte == null
+                || carteRichieste == null) {
+            return false;
+        }
+
+        /*
+         * Prima di modificare qualsiasi cosa controlliamo che
+         * tutte le carte siano ancora effettivamente nei rispettivi
+         * inventari.
+         */
+
+        for (CartaFisica carta : carteOfferte) {
+
+            boolean presente = false;
+
+            for (CartaFisica cartaInventario :
+                    proponente.getInventario().getCarte()) {
+
+                if (cartaInventario.getIdCarta()
+                        == carta.getIdCarta()) {
+                    presente = true;
+                    break;
+                }
+            }
+
+            if (!presente) {
+                return false;
+            }
+        }
+
+        for (CartaFisica carta : carteRichieste) {
+
+            boolean presente = false;
+
+            for (CartaFisica cartaInventario :
+                    proprietarioAnnuncio.getInventario().getCarte()) {
+
+                if (cartaInventario.getIdCarta()
+                        == carta.getIdCarta()) {
+                    presente = true;
+                    break;
+                }
+            }
+
+            if (!presente) {
+                return false;
+            }
+        }
+
+        /*
+         * Conserviamo gli ID delle carte in caso sia necessario
+         * ripristinare le relazioni nel file.
+         */
+        List<Integer> offerteRimosse = new ArrayList<>();
+        List<Integer> richiesteRimosse = new ArrayList<>();
+
+        try {
+
+            // ==========================================
+            // 1. RIMUOVIAMO LE CARTE DA PEACH
+            // ==========================================
+
+            for (CartaFisica carta : carteOfferte) {
+
+                if (!inventarioDAO.rimuoviCarta(
+                        proponente.getUsername(),
+                        carta.getIdCarta())) {
+
+                    throw new IllegalStateException(
+                            "Impossibile rimuovere la carta "
+                                    + carta.getIdCarta()
+                                    + " da "
+                                    + proponente.getUsername()
+                    );
+                }
+
+                offerteRimosse.add(carta.getIdCarta());
+            }
+
+            // ==========================================
+            // 2. RIMUOVIAMO LE CARTE DA MARIO
+            // ==========================================
+
+            for (CartaFisica carta : carteRichieste) {
+
+                if (!inventarioDAO.rimuoviCarta(
+                        proprietarioAnnuncio.getUsername(),
+                        carta.getIdCarta())) {
+
+                    throw new IllegalStateException(
+                            "Impossibile rimuovere la carta "
+                                    + carta.getIdCarta()
+                                    + " da "
+                                    + proprietarioAnnuncio.getUsername()
+                    );
+                }
+
+                richiesteRimosse.add(carta.getIdCarta());
+            }
+
+            // ==========================================
+            // 3. AGGIUNGIAMO LE CARTE DI PEACH A MARIO
+            // ==========================================
+
+            for (CartaFisica carta : carteOfferte) {
+
+                if (!inventarioDAO.aggiungiCarta(
+                        proprietarioAnnuncio.getUsername(),
+                        carta.getIdCarta())) {
+
+                    throw new IllegalStateException(
+                            "Impossibile aggiungere la carta "
+                                    + carta.getIdCarta()
+                                    + " a "
+                                    + proprietarioAnnuncio.getUsername()
+                    );
+                }
+            }
+
+            // ==========================================
+            // 4. AGGIUNGIAMO LE CARTE DI MARIO A PEACH
+            // ==========================================
+
+            for (CartaFisica carta : carteRichieste) {
+
+                if (!inventarioDAO.aggiungiCarta(
+                        proponente.getUsername(),
+                        carta.getIdCarta())) {
+
+                    throw new IllegalStateException(
+                            "Impossibile aggiungere la carta "
+                                    + carta.getIdCarta()
+                                    + " a "
+                                    + proponente.getUsername()
+                    );
+                }
+            }
+
+            // ==========================================
+            // 5. AGGIORNIAMO GLI INVENTARI IN MEMORIA
+            // ==========================================
+
+            for (CartaFisica carta : carteOfferte) {
+
+                proponente.getInventario().rimuoviCarta(carta);
+
+                proprietarioAnnuncio
+                        .getInventario()
+                        .aggiungiCarta(carta);
+            }
+
+            for (CartaFisica carta : carteRichieste) {
+
+                proprietarioAnnuncio
+                        .getInventario()
+                        .rimuoviCarta(carta);
+
+                proponente
+                        .getInventario()
+                        .aggiungiCarta(carta);
+            }
+
+            // ==========================================
+            // 6. SBLOCCO DELLE CARTE
+            // ==========================================
+
+            for (CartaFisica carta : carteOfferte) {
+
+                carta.setBloccataInScambio(false);
+
+                if (!cartaDAO.aggiorna(carta)) {
+                    throw new IllegalStateException(
+                            "Impossibile aggiornare la carta "
+                                    + carta.getIdCarta()
+                    );
+                }
+            }
+
+            for (CartaFisica carta : carteRichieste) {
+
+                carta.setBloccataInScambio(false);
+
+                if (!cartaDAO.aggiorna(carta)) {
+                    throw new IllegalStateException(
+                            "Impossibile aggiornare la carta "
+                                    + carta.getIdCarta()
+                    );
+                }
+            }
+
+            return true;
+
+        } catch (Exception e) {
+
+            // ==========================================
+            // ROLLBACK DEL FILE INVENTARI
+            // ==========================================
+
+            /*
+             * Prima eliminiamo eventuali carte che siamo riusciti
+             * ad aggiungere ai nuovi proprietari.
+             */
+
+            for (Integer idCarta : offerteRimosse) {
+
+                inventarioDAO.rimuoviCarta(
+                        proprietarioAnnuncio.getUsername(),
+                        idCarta
+                );
+            }
+
+            for (Integer idCarta : richiesteRimosse) {
+
+                inventarioDAO.rimuoviCarta(
+                        proponente.getUsername(),
+                        idCarta
+                );
+            }
+
+            /*
+             * Poi ripristiniamo la proprietà originale.
+             */
+
+            for (Integer idCarta : offerteRimosse) {
+
+                inventarioDAO.aggiungiCarta(
+                        proponente.getUsername(),
+                        idCarta
+                );
+            }
+
+            for (Integer idCarta : richiesteRimosse) {
+
+                inventarioDAO.aggiungiCarta(
+                        proprietarioAnnuncio.getUsername(),
+                        idCarta
+                );
+            }
+
+            /*
+             * Ripristiniamo lo stato delle carte offerte.
+             * Anche se il trasferimento fallisce, devono rimanere
+             * bloccate perché la proposta è ancora esistente.
+             */
+
+            for (CartaFisica carta : carteOfferte) {
+                carta.setBloccataInScambio(true);
+                cartaDAO.aggiorna(carta);
+            }
+
+            return false;
+        }
     }
 }

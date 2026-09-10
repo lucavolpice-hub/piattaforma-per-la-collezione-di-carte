@@ -1,102 +1,66 @@
-import controller.ControllerScambi;
 import controller.ControllerUtenti;
 import controller.Piattaforma;
+
+import dao.AnnuncioDAO;
+import dao.AnnuncioFileDAO;
+import dao.CartaFisicaDAO;
+import dao.CartaFisicaFileDAO;
+import dao.UtenteDAO;
+import dao.UtenteFileDAO;
 
 import model.Annuncio;
 import model.AnnuncioScambio;
 import model.CartaFisica;
 import model.PropostaScambio;
-import model.Utente;
 
 import java.util.ArrayList;
-import java.util.List;
 
 public class Main {
 
     public static void main(String[] args) {
 
         // ==========================================
-        // CARICAMENTO DELLA PIATTAFORMA
+        // CARICAMENTO PIATTAFORMA
         // ==========================================
 
-        Piattaforma piattaforma = new Piattaforma(
-                new ArrayList<Annuncio>(),
-                new ArrayList<PropostaScambio>()
-        );
+        Piattaforma piattaforma =
+                new Piattaforma(
+                        new ArrayList<Annuncio>(),
+                        new ArrayList<PropostaScambio>()
+                );
 
         ControllerUtenti controllerUtenti =
                 new ControllerUtenti(piattaforma);
 
-        ControllerScambi controllerScambi =
-                new ControllerScambi(
-                        piattaforma,
-                        controllerUtenti
+        UtenteDAO utenteDAO = new UtenteFileDAO();
+        CartaFisicaDAO cartaDAO = new CartaFisicaFileDAO();
+
+        AnnuncioDAO annuncioDAO =
+                new AnnuncioFileDAO(
+                        utenteDAO,
+                        cartaDAO
                 );
 
         // ==========================================
-        // RECUPERIAMO GLI UTENTI
+        // CERCHIAMO MARIO
         // ==========================================
 
-        Utente mario =
+        var mario =
                 controllerUtenti.cercaUtente("mario");
 
-        Utente peach =
-                controllerUtenti.cercaUtente("peach");
-
-        System.out.println("=== UTENTI ===");
-        System.out.println("Mario: " + (mario != null));
-        System.out.println("Peach: " + (peach != null));
-
-        if (mario == null || peach == null) {
-            System.out.println(
-                    "Impossibile continuare: utenti mancanti."
-            );
+        if (mario == null) {
+            System.out.println("Mario non trovato.");
             return;
         }
 
         // ==========================================
-        // RECUPERIAMO L'ANNUNCIO
+        // INVENTARIO MARIO
         // ==========================================
 
-        AnnuncioScambio annuncio = null;
-
-        for (Annuncio a : piattaforma.getAnnuncio()) {
-            if (a instanceof AnnuncioScambio) {
-                annuncio = (AnnuncioScambio) a;
-                break;
-            }
-        }
-
-        System.out.println("\n=== ANNUNCIO ===");
-
-        if (annuncio == null) {
-            System.out.println("Nessun annuncio di scambio trovato.");
-            return;
-        }
-
-        System.out.println(
-                "Annuncio: #" + annuncio.getIdAnnuncio()
-                        + " - "
-                        + annuncio.getDescrizione()
-        );
-
-        System.out.println(
-                "Creatore: "
-                        + annuncio.getCreatore().getUsername()
-        );
-
-        System.out.println(
-                "Stato: " + annuncio.getStato()
-        );
-
-        // ==========================================
-        // INVENTARIO DI PEACH
-        // ==========================================
-
-        System.out.println("\n=== INVENTARIO PEACH ===");
+        System.out.println("=== INVENTARIO MARIO ===");
 
         for (CartaFisica carta :
-                peach.getInventario().getCarte()) {
+                mario.getInventario().getCarte()) {
 
             System.out.println(
                     "#" + carta.getIdCarta()
@@ -108,136 +72,113 @@ public class Main {
         }
 
         // ==========================================
-        // RECUPERIAMO BULBASAUR E SQUIRTLE
+        // CERCHIAMO L'ANNUNCIO
         // ==========================================
 
-        CartaFisica bulbasaur = null;
-        CartaFisica squirtle = null;
+        AnnuncioScambio annuncio = null;
 
-        for (CartaFisica carta :
-                peach.getInventario().getCarte()) {
+        for (Annuncio a :
+                piattaforma.getAnnuncio()) {
 
-            if (carta.getIdCarta() == 10) {
-                bulbasaur = carta;
-            }
-
-            if (carta.getIdCarta() == 11) {
-                squirtle = carta;
+            if (a instanceof AnnuncioScambio) {
+                annuncio = (AnnuncioScambio) a;
+                break;
             }
         }
 
-        if (bulbasaur == null || squirtle == null) {
+        if (annuncio == null) {
             System.out.println(
-                    "\nMancano Bulbasaur o Squirtle nell'inventario di Peach."
+                    "Nessun annuncio di scambio trovato."
             );
             return;
         }
 
         // ==========================================
-        // TEST 1: PROPOSTA VALIDA
+        // ASSOCIA UNA CARTA ALL'ANNUNCIO
         // ==========================================
 
-        System.out.println(
-                "\n=== TEST 1: PROPOSTA VALIDA ==="
-        );
+        if (!mario.getInventario().getCarte().isEmpty()) {
 
-        List<CartaFisica> carteValide = new ArrayList<>();
-        carteValide.add(bulbasaur);
-        carteValide.add(squirtle);
+            CartaFisica carta =
+                    mario.getInventario()
+                            .getCarte()
+                            .get(0);
 
-        PropostaScambio propostaValida =
-                controllerScambi.inviaProposta(
-                        peach,
-                        annuncio,
-                        carteValide
-                );
+            annuncio.aggiungiCarta(carta);
 
-        System.out.println(
-                "Proposta creata: "
-                        + (propostaValida != null)
-        );
+            System.out.println(
+                    "\nCarta aggiunta all'annuncio: "
+                            + carta.getNomeCarta()
+            );
+        } else {
+            System.out.println(
+                    "\nMario non possiede carte."
+            );
+            return;
+        }
 
-        System.out.println(
-                "Bulbasaur bloccata: "
-                        + bulbasaur.isBloccataInScambio()
-        );
+        // ==========================================
+        // SALVIAMO L'ANNUNCIO
+        // ==========================================
 
-        System.out.println(
-                "Squirtle bloccata: "
-                        + squirtle.isBloccataInScambio()
-        );
+        boolean aggiornato =
+                annuncioDAO.aggiorna(annuncio);
 
         System.out.println(
-                "Numero proposte piattaforma: "
-                        + piattaforma.getProposteScambio().size()
+                "Annuncio aggiornato: "
+                        + aggiornato
         );
 
         // ==========================================
-        // TEST 2: CARTA NON POSSEDUTA
+        // RILEGGIAMO DAL FILE
         // ==========================================
 
         System.out.println(
-                "\n=== TEST 2: CARTA NON POSSEDUTA ==="
+                "\n=== ANNUNCIO RICARICATO ==="
         );
 
-        CartaFisica cartaFalsa =
-                new CartaFisica(
-                        999,
-                        "Charizard",
-                        "Mint",
-                        "Italiano"
-                );
+        AnnuncioScambio annuncioRicaricato = null;
 
-        List<CartaFisica> carteNonPossedute =
-                new ArrayList<>();
+        for (Annuncio a :
+                annuncioDAO.trovaTutti()) {
 
-        carteNonPossedute.add(cartaFalsa);
+            if (a.getIdAnnuncio()
+                    == annuncio.getIdAnnuncio()
+                    && a instanceof AnnuncioScambio) {
 
-        PropostaScambio propostaNonValida =
-                controllerScambi.inviaProposta(
-                        peach,
-                        annuncio,
-                        carteNonPossedute
-                );
+                annuncioRicaricato =
+                        (AnnuncioScambio) a;
 
-        System.out.println(
-                "Proposta creata: "
-                        + (propostaNonValida != null)
-        );
+                break;
+            }
+        }
+
+        if (annuncioRicaricato == null) {
+            System.out.println(
+                    "Annuncio non trovato."
+            );
+            return;
+        }
 
         System.out.println(
-                "Numero proposte piattaforma: "
-                        + piattaforma.getProposteScambio().size()
-        );
-
-        // ==========================================
-        // TEST 3: CARTA GIÀ BLOCCATA
-        // ==========================================
-
-        System.out.println(
-                "\n=== TEST 3: CARTA GIÀ BLOCCATA ==="
-        );
-
-        List<CartaFisica> cartaGiaBloccata =
-                new ArrayList<>();
-
-        cartaGiaBloccata.add(bulbasaur);
-
-        PropostaScambio secondaProposta =
-                controllerScambi.inviaProposta(
-                        peach,
-                        annuncio,
-                        cartaGiaBloccata
-                );
-
-        System.out.println(
-                "Seconda proposta creata: "
-                        + (secondaProposta != null)
+                "Annuncio: #"
+                        + annuncioRicaricato.getIdAnnuncio()
+                        + " - "
+                        + annuncioRicaricato.getDescrizione()
         );
 
         System.out.println(
-                "Numero proposte piattaforma: "
-                        + piattaforma.getProposteScambio().size()
+                "Carte associate:"
         );
+
+        for (CartaFisica carta :
+                annuncioRicaricato.getCarte()) {
+
+            System.out.println(
+                    "#" + carta.getIdCarta()
+                            + " | "
+                            + carta.getNomeCarta()
+            );
+        }
     }
 }

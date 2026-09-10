@@ -102,10 +102,14 @@ public class ControllerUtenti {
                         scambio.getValoreDiRiferimento(),
                         scambio.getStato()
                 );
+                for (CartaFisica carta : scambio.getCarte()) {
+                    annuncio.aggiungiCarta(carta);
+                }
 
             } else {
                 continue;
             }
+
 
             piattaforma.getAnnuncio().add(annuncio);
 
@@ -179,7 +183,7 @@ public class ControllerUtenti {
     }
     private CartaFisica cercaCartaNelSistema(int idCarta) {
         for (Utente utente : piattaforma.getUtenti()) {
-            for (CartaFisica carta : utente.getInventario().getCarteDisponibili()) {
+            for (CartaFisica carta : utente.getInventario().getCarte()) {
                 if (carta.getIdCarta() == idCarta) {
                     return carta;
                 }

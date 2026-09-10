@@ -83,7 +83,17 @@ public abstract class Annuncio {
         this.stato = stato;
     }
 
-    public void aggiungiCarta(CartaFisica carta){
+    public void aggiungiCarta(CartaFisica carta) {
+        if (carta == null) {
+            return;
+        }
+
+        for (CartaFisica cartaEsistente : carte) {
+            if (cartaEsistente.getIdCarta() == carta.getIdCarta()) {
+                return;
+            }
+        }
+
         carte.add(carta);
     }
 
