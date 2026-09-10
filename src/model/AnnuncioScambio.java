@@ -41,6 +41,15 @@ public class AnnuncioScambio extends Annuncio {
         // Cambia lo stato in IN_TRATTATIVA quando si riceve una proposta
         this.avviaTrattativa();
     }
+    public void aggiungiPropostaCaricata(PropostaScambio p) {
+        if (p == null) {
+            return;
+        }
+
+        if (!proposte.contains(p)) {
+            proposte.add(p);
+        }
+    }
 
     public void accettaProposta(PropostaScambio p) {
 

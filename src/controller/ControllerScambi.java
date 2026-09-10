@@ -201,10 +201,16 @@ public class ControllerScambi {
      * Accetta una proposta, ma solo se è stata effettivamente
      * registrata tramite questo controller.
      */
-    public boolean accettaProposta(PropostaScambio proposta) {
+    public boolean accettaProposta(
+            Utente utenteCheAccetta,
+            PropostaScambio proposta
+    ) {
 
-        // 1. Controlli di base
-        if (proposta == null) {
+        // ==========================================
+        // 1. CONTROLLI DI BASE
+        // ==========================================
+
+        if (utenteCheAccetta == null || proposta == null) {
             return false;
         }
 
@@ -212,8 +218,12 @@ public class ControllerScambi {
             return false;
         }
 
-        // 2. La proposta deve essere ancora in attesa
-        if (proposta.getStato() != model.StatoProposta.IN_ATTESA) {
+        // ==========================================
+        // 2. LA PROPOSTA DEVE ESSERE IN ATTESA
+        // ==========================================
+
+        if (proposta.getStato()
+                != model.StatoProposta.IN_ATTESA) {
             return false;
         }
 
@@ -224,29 +234,55 @@ public class ControllerScambi {
             return false;
         }
 
-        // 3. L'annuncio deve essere in trattativa
-        if (annuncio.getStato() != model.StatoAnnuncio.IN_TRATTATIVA) {
+        // ==========================================
+        // 3. L'ANNUNCIO DEVE ESSERE IN TRATTATIVA
+        // ==========================================
+
+        if (annuncio.getStato()
+                != model.StatoAnnuncio.IN_TRATTATIVA) {
             return false;
         }
 
-        // 4. Recuperiamo i due utenti
+        // ==========================================
+        // 4. RECUPERIAMO I DUE UTENTI
+        // ==========================================
+
         Utente proprietarioAnnuncio =
                 annuncio.getCreatore();
 
         Utente proponente =
                 proposta.getProponente();
 
-        if (proprietarioAnnuncio == null || proponente == null) {
+        if (proprietarioAnnuncio == null
+                || proponente == null) {
             return false;
         }
 
-        // 5. Il proprietario non può accettare una propria proposta
+        // ==========================================
+        // 5. SOLO IL PROPRIETARIO DELL'ANNUNCIO
+        //    PUÒ ACCETTARE LA PROPOSTA
+        // ==========================================
+
+        if (!proprietarioAnnuncio.getUsername()
+                .equalsIgnoreCase(
+                        utenteCheAccetta.getUsername())) {
+            return false;
+        }
+
+        // ==========================================
+        // 6. IL PROPRIETARIO NON PUÒ ESSERE
+        //    ANCHE IL PROPONENTE
+        // ==========================================
+
         if (proprietarioAnnuncio.getUsername()
                 .equalsIgnoreCase(proponente.getUsername())) {
             return false;
         }
 
-        // 6. Recuperiamo le carte coinvolte nello scambio
+        // ==========================================
+        // 7. RECUPERIAMO LE CARTE
+        // ==========================================
+
         List<CartaFisica> carteRichieste =
                 annuncio.getCarte();
 
@@ -260,14 +296,19 @@ public class ControllerScambi {
             return false;
         }
 
-        // 7. Verifichiamo che le carte dell'annuncio
-        // appartengano ancora al proprietario
+        // ==========================================
+        // 8. LE CARTE DELL'ANNUNCIO DEVONO
+        //    ESSERE ANCORA DEL PROPRIETARIO
+        // ==========================================
+
         for (CartaFisica carta : carteRichieste) {
 
             boolean presente = false;
 
             for (CartaFisica cartaInventario :
-                    proprietarioAnnuncio.getInventario().getCarte()) {
+                    proprietarioAnnuncio
+                            .getInventario()
+                            .getCarte()) {
 
                 if (cartaInventario.getIdCarta()
                         == carta.getIdCarta()) {
@@ -281,20 +322,25 @@ public class ControllerScambi {
                 return false;
             }
 
-            // La carta dell'annuncio non deve essere già bloccata
+            // Le carte dell'annuncio devono essere disponibili
             if (carta.isBloccataInScambio()) {
                 return false;
             }
         }
 
-        // 8. Verifichiamo che le carte offerte
-        // appartengano ancora al proponente
+        // ==========================================
+        // 9. LE CARTE OFFERTE DEVONO ESSERE
+        //    ANCORA DI PROPRIETÀ DEL PROPONENTE
+        // ==========================================
+
         for (CartaFisica carta : carteOfferte) {
 
             boolean presente = false;
 
             for (CartaFisica cartaInventario :
-                    proponente.getInventario().getCarte()) {
+                    proponente
+                            .getInventario()
+                            .getCarte()) {
 
                 if (cartaInventario.getIdCarta()
                         == carta.getIdCarta()) {
@@ -308,17 +354,17 @@ public class ControllerScambi {
                 return false;
             }
 
-            /*
-             * Le carte offerte DEVONO essere bloccate:
-             * significa che appartengono alla proposta
-             * che stiamo accettando.
-             */
+            // Devono essere bloccate perché appartengono
+            // alla proposta che stiamo accettando.
             if (!carta.isBloccataInScambio()) {
                 return false;
             }
         }
 
-        // 9. Eseguiamo il trasferimento
+        // ==========================================
+        // 10. TRASFERIMENTO
+        // ==========================================
+
         boolean trasferimentoRiuscito =
                 trasferisciCarte(
                         proponente,
@@ -331,14 +377,18 @@ public class ControllerScambi {
             return false;
         }
 
-        // 10. La proposta viene accettata
+        // ==========================================
+        // 11. AGGIORNAMENTO DEGLI STATI
+        // ==========================================
+
         proposta.accetta();
 
-        // 11. L'annuncio viene concluso
         annuncio.concludi();
 
-        // 12. Tutte le altre proposte relative
-        // allo stesso annuncio vengono rifiutate
+        // ==========================================
+        // 12. RIFIUTIAMO LE ALTRE PROPOSTE
+        // ==========================================
+
         for (PropostaScambio altraProposta :
                 piattaforma.getProposteScambio()) {
 
@@ -346,8 +396,14 @@ public class ControllerScambi {
                 continue;
             }
 
-            if (altraProposta.getAnnuncioRicevuto()
-                    .getIdAnnuncio()
+            AnnuncioScambio altroAnnuncio =
+                    altraProposta.getAnnuncioRicevuto();
+
+            if (altroAnnuncio == null) {
+                continue;
+            }
+
+            if (altroAnnuncio.getIdAnnuncio()
                     != annuncio.getIdAnnuncio()) {
                 continue;
             }
@@ -359,8 +415,7 @@ public class ControllerScambi {
 
             altraProposta.rifiuta();
 
-            // Sblocchiamo le carte delle proposte
-            // che non sono state accettate
+            // Sblocchiamo le carte della proposta rifiutata
             for (CartaFisica carta :
                     altraProposta.getCarteOfferte()) {
 

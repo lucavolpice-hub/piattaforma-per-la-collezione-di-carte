@@ -152,6 +152,19 @@ public class ControllerUtenti {
                         cercaCartaNelSistema(cartaSalvata.getIdCarta());
 
                 if (cartaReale != null) {
+
+                    // Una proposta ancora IN_ATTESA
+                    // mantiene bloccate le carte offerte.
+                    if (propostaSalvata.getStato()
+                            == model.StatoProposta.IN_ATTESA) {
+
+                        cartaReale.setBloccataInScambio(true);
+
+                        if (!cartaDAO.aggiorna(cartaReale)) {
+                            continue;
+                        }
+                    }
+
                     carteOfferte.add(cartaReale);
                 }
             }
@@ -166,6 +179,12 @@ public class ControllerUtenti {
             );
 
             piattaforma.getProposteScambio().add(proposta);
+            annuncioRicevuto.aggiungiPropostaCaricata(proposta);
+            if (proposta.getStato()
+                    == model.StatoProposta.IN_ATTESA) {
+
+                annuncioRicevuto.avviaTrattativa();
+            }
 
             if (!proponente.getProposteEffettuate().contains(proposta)) {
                 proponente.aggiungiProposta(proposta);

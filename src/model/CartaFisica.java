@@ -50,6 +50,27 @@ public class CartaFisica {
     }
 
     @Override
+    public boolean equals(Object obj) {
+
+        if (this == obj) {
+            return true;
+        }
+
+        if (!(obj instanceof CartaFisica)) {
+            return false;
+        }
+
+        CartaFisica altraCarta = (CartaFisica) obj;
+
+        return idCarta == altraCarta.idCarta;
+    }
+
+    @Override
+    public int hashCode() {
+        return Integer.hashCode(idCarta);
+    }
+
+    @Override
     public String toString() {
         return nomeCarta + " (" + condizione + ", " + lingua + ")";
     }
