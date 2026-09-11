@@ -1,3 +1,4 @@
 mario;10
 mario;11
 peach;25
+Luke;3

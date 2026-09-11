@@ -524,20 +524,15 @@ public class ControllerUtenti {
             return false;
         }
 
+        // Salvataggio persistente
+        if (!recensioneDAO.salva(recensione)) {
+            return false;
+        }
+
+        // Aggiornamento del modello in memoria
         destinatario.aggiungiRecensioneRicevuta(recensione);
 
         return true;
-    }
-
-    /**
-     * Restituisce le recensioni ricevute da un utente.
-     */
-    public List<Recensione> getRecensioni(Utente utente) {
-        if (utente == null) {
-            return new ArrayList<>();
-        }
-
-        return utente.getRecensioniRicevute();
     }
 
     /**

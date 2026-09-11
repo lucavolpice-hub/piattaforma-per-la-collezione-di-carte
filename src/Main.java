@@ -1,7 +1,9 @@
+import controller.ControllerAnnunci;
 import controller.ControllerUtenti;
 import controller.Piattaforma;
 import Gui.LoginGui;
 import Gui.AreaPersonale;
+import Gui.BachecaAnnunci;
 
 import model.Annuncio;
 import model.PropostaScambio;
@@ -22,6 +24,12 @@ public class Main {
         ControllerUtenti controllerUtenti =
                 new ControllerUtenti(piattaforma);
 
+        ControllerAnnunci controllerAnnunci =
+                new ControllerAnnunci(
+                        piattaforma,
+                        controllerUtenti
+                );
+
         SwingUtilities.invokeLater(() -> {
 
             LoginGui loginGui =
@@ -30,10 +38,14 @@ public class Main {
 
                             utente -> {
 
-                                AreaPersonale areaPersonale =
-                                        new AreaPersonale(utente);
+                                BachecaAnnunci bachecaAnnunci =
+                                        new BachecaAnnunci(
+                                                utente,
+                                                controllerAnnunci,
+                                                controllerUtenti
+                                        );
 
-                                areaPersonale.setVisible(true);
+                                bachecaAnnunci.setVisible(true);
                             }
                     );
 
