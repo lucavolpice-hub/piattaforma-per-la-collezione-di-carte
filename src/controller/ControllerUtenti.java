@@ -300,28 +300,29 @@ public class ControllerUtenti {
     /**
      * Crea e registra un nuovo utente.
      */
-    public boolean registraUtente(String username, String password) {
+    public Utente registraUtente(String username, String password) {
+
         if (username == null || username.isBlank()) {
-            return false;
+            return null;
         }
 
         if (password == null || password.isBlank()) {
-            return false;
+            return null;
         }
 
         if (!usernameDisponibile(username)) {
-            return false;
+            return null;
         }
 
         Utente nuovoUtente = new Utente(username, password);
 
         if (!utenteDAO.salva(nuovoUtente)) {
-            return false;
+            return null;
         }
 
         piattaforma.aggiungiUtente(nuovoUtente);
 
-        return true;
+        return nuovoUtente;
     }
 
     /**
