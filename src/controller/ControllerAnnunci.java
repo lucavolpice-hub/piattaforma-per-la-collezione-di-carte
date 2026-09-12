@@ -1,26 +1,54 @@
 package controller;
 
-import java.util.ArrayList;
-import java.util.List;
+import dao.AnnuncioDAO;
+import dao.AnnuncioFileDAO;
+import dao.CartaFisicaDAO;
+import dao.CartaFisicaFileDAO;
+import dao.InventarioDAO;
+import dao.InventarioFileDAO;
+import dao.UtenteDAO;
+import dao.UtenteFileDAO;
 
 import model.Annuncio;
 import model.AnnuncioScambio;
 import model.AnnuncioVendita;
+import model.CartaFisica;
 import model.CategoriaCarta;
 import model.Utente;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
- * Gestisce la creazione, la ricerca e la chiusura degli annunci.
+ * Gestisce la creazione, la ricerca, l'acquisto e la chiusura degli annunci.
  */
 public class ControllerAnnunci {
 
     private final Piattaforma piattaforma;
     private final ControllerUtenti controllerUtenti;
 
-    public ControllerAnnunci(Piattaforma piattaforma,
-                             ControllerUtenti controllerUtenti) {
+    private final InventarioDAO inventarioDAO;
+    private final CartaFisicaDAO cartaDAO;
+    private final AnnuncioDAO annuncioDAO;
+
+    public ControllerAnnunci(
+            Piattaforma piattaforma,
+            ControllerUtenti controllerUtenti
+    ) {
+
         this.piattaforma = piattaforma;
         this.controllerUtenti = controllerUtenti;
+
+        UtenteDAO utenteDAO = new UtenteFileDAO();
+
+        this.cartaDAO = new CartaFisicaFileDAO();
+        this.inventarioDAO = new InventarioFileDAO();
+
+        this.annuncioDAO =
+                new AnnuncioFileDAO(
+                        utenteDAO,
+                        cartaDAO
+                );
     }
 
     /**
@@ -29,11 +57,18 @@ public class ControllerAnnunci {
      *
      * @return l'annuncio creato, oppure null se i dati non sono validi
      */
-    public AnnuncioVendita pubblicaAnnuncioVendita(Utente creatore,
-                                                   String descrizione,
-                                                   CategoriaCarta categoria,
-                                                   double prezzo) {
-        if (creatore == null || descrizione == null || descrizione.isBlank()) {
+    public AnnuncioVendita pubblicaAnnuncioVendita(
+            Utente creatore,
+            String descrizione,
+            CategoriaCarta categoria,
+            double prezzo,
+            CartaFisica carta
+    ) {
+
+        if (creatore == null
+                || descrizione == null
+                || descrizione.isBlank()
+                || carta == null) {
             return null;
         }
 
@@ -41,14 +76,69 @@ public class ControllerAnnunci {
             return null;
         }
 
-        AnnuncioVendita annuncio =
-                new AnnuncioVendita(descrizione, categoria, creatore, prezzo);
+        // La carta deve appartenere all'utente
+        boolean posseduta = false;
 
-        // 1) Aggiungo alla lista globale della piattaforma
+        for (CartaFisica cartaInventario :
+                creatore.getInventario().getCarte()) {
+
+            if (cartaInventario.getIdCarta()
+                    == carta.getIdCarta()) {
+
+                posseduta = true;
+                break;
+            }
+        }
+
+        if (!posseduta) {
+            return null;
+        }
+
+        // La stessa carta non può essere presente
+        // in un altro annuncio ancora attivo
+        for (Annuncio annuncio :
+                piattaforma.getAnnuncio()) {
+
+            if (annuncio.getStato()
+                    == model.StatoAnnuncio.CONCLUSO) {
+                continue;
+            }
+
+            for (CartaFisica cartaAnnuncio :
+                    annuncio.getCarte()) {
+
+                if (cartaAnnuncio.getIdCarta()
+                        == carta.getIdCarta()) {
+
+                    return null;
+                }
+            }
+        }
+
+        AnnuncioVendita annuncio =
+                new AnnuncioVendita(
+                        descrizione,
+                        categoria,
+                        creatore,
+                        prezzo
+                );
+
+        // Associa la carta all'annuncio
+        annuncio.aggiungiCarta(carta);
+
+        // Salva l'annuncio completo
+        if (!annuncioDAO.salva(annuncio)) {
+            return null;
+        }
+
+        // Aggiunta alla piattaforma
         piattaforma.getAnnuncio().add(annuncio);
 
-        // 2) Collego l'annuncio all'utente creatore
-        controllerUtenti.aggiungiAnnuncio(creatore, annuncio);
+        // Collegamento all'utente
+        controllerUtenti.aggiungiAnnuncio(
+                creatore,
+                annuncio
+        );
 
         return annuncio;
     }
@@ -57,11 +147,17 @@ public class ControllerAnnunci {
      * Crea un annuncio di scambio e lo registra sia nella piattaforma
      * sia nella lista personale dell'utente che lo ha creato.
      */
-    public AnnuncioScambio pubblicaAnnuncioScambio(Utente creatore,
-                                                   String descrizione,
-                                                   CategoriaCarta categoria,
-                                                   double valoreDiRiferimento) {
-        if (creatore == null || descrizione == null || descrizione.isBlank()) {
+    public AnnuncioScambio pubblicaAnnuncioScambio(
+            Utente creatore,
+            String descrizione,
+            CategoriaCarta categoria,
+            double valoreDiRiferimento,
+            CartaFisica carta
+    ) {
+
+        if (creatore == null
+                || descrizione == null
+                || descrizione.isBlank()) {
             return null;
         }
 
@@ -70,13 +166,23 @@ public class ControllerAnnunci {
         }
 
         AnnuncioScambio annuncio =
-                new AnnuncioScambio(descrizione, categoria, creatore, valoreDiRiferimento);
+                new AnnuncioScambio(
+                        descrizione,
+                        categoria,
+                        creatore,
+                        valoreDiRiferimento
+                );
 
-        // 1) Aggiungo alla lista globale della piattaforma
+        if (!annuncioDAO.salva(annuncio)) {
+            return null;
+        }
+
         piattaforma.getAnnuncio().add(annuncio);
 
-        // 2) Collego l'annuncio all'utente creatore
-        controllerUtenti.aggiungiAnnuncio(creatore, annuncio);
+        controllerUtenti.aggiungiAnnuncio(
+                creatore,
+                annuncio
+        );
 
         return annuncio;
     }
@@ -87,7 +193,10 @@ public class ControllerAnnunci {
      * @return l'annuncio trovato, oppure null se non esiste
      */
     public Annuncio cercaAnnuncioPerId(int idAnnuncio) {
-        for (Annuncio annuncio : piattaforma.getAnnuncio()) {
+
+        for (Annuncio annuncio :
+                piattaforma.getAnnuncio()) {
+
             if (annuncio.getIdAnnuncio() == idAnnuncio) {
                 return annuncio;
             }
@@ -97,17 +206,22 @@ public class ControllerAnnunci {
     }
 
     /**
-     * Restituisce tutti gli annunci di una certa categoria
-     * (es. solo CARTA_SINGOLA, solo BOX...).
+     * Restituisce tutti gli annunci di una certa categoria.
      */
-    public List<Annuncio> cercaAnnunciPerCategoria(CategoriaCarta categoria) {
-        List<Annuncio> risultato = new ArrayList<>();
+    public List<Annuncio> cercaAnnunciPerCategoria(
+            CategoriaCarta categoria
+    ) {
+
+        List<Annuncio> risultato =
+                new ArrayList<>();
 
         if (categoria == null) {
             return risultato;
         }
 
-        for (Annuncio annuncio : piattaforma.getAnnuncio()) {
+        for (Annuncio annuncio :
+                piattaforma.getAnnuncio()) {
+
             if (annuncio.getCategoria() == categoria) {
                 risultato.add(annuncio);
             }
@@ -117,14 +231,19 @@ public class ControllerAnnunci {
     }
 
     /**
-     * Restituisce solo gli annunci ancora disponibili
-     * (esclude quelli in trattativa o conclusi).
+     * Restituisce solo gli annunci ancora disponibili.
      */
     public List<Annuncio> cercaAnnunciDisponibili() {
-        List<Annuncio> risultato = new ArrayList<>();
 
-        for (Annuncio annuncio : piattaforma.getAnnuncio()) {
-            if (annuncio.getStato() == model.StatoAnnuncio.DISPONIBILE) {
+        List<Annuncio> risultato =
+                new ArrayList<>();
+
+        for (Annuncio annuncio :
+                piattaforma.getAnnuncio()) {
+
+            if (annuncio.getStato()
+                    == model.StatoAnnuncio.DISPONIBILE) {
+
                 risultato.add(annuncio);
             }
         }
@@ -133,20 +252,301 @@ public class ControllerAnnunci {
     }
 
     /**
-     * Chiude un annuncio, ma solo se è stato effettivamente
-     * pubblicato tramite questo controller (cioè esiste in piattaforma).
+     * Chiude un annuncio.
      */
-    public boolean chiudiAnnuncio(Annuncio annuncio) {
-        if (annuncio == null || !piattaforma.getAnnuncio().contains(annuncio)) {
+    public boolean chiudiAnnuncio(
+            Annuncio annuncio
+    ) {
+
+        if (annuncio == null
+                || !piattaforma.getAnnuncio()
+                .contains(annuncio)) {
+
             return false;
         }
 
         try {
+
             annuncio.concludi();
             return true;
+
         } catch (Exception e) {
-            // In caso di errore imprevisto durante la chiusura,
-            // restituiamo false per segnalare che l'operazione non è andata a buon fine.
+
+            return false;
+        }
+    }
+
+    /**
+     * Acquista un annuncio di vendita.
+     *
+     * L'acquisto:
+     * 1. verifica che acquirente e annuncio siano validi;
+     * 2. verifica che l'annuncio sia disponibile;
+     * 3. impedisce al creatore di acquistare il proprio annuncio;
+     * 4. verifica che le carte appartengano ancora al venditore;
+     * 5. trasferisce le carte dal venditore all'acquirente;
+     * 6. conclude l'annuncio;
+     * 7. aggiorna il DAO.
+     *
+     * @return true se l'acquisto è riuscito, false altrimenti
+     */
+    public boolean acquistaAnnuncio(
+            Utente acquirente,
+            AnnuncioVendita annuncio
+    ) {
+
+        // ==========================================
+        // 1. CONTROLLI DI BASE
+        // ==========================================
+
+        if (acquirente == null
+                || annuncio == null) {
+
+            return false;
+        }
+
+        if (!piattaforma.getUtenti()
+                .contains(acquirente)) {
+
+            return false;
+        }
+
+        if (!piattaforma.getAnnuncio()
+                .contains(annuncio)) {
+
+            return false;
+        }
+
+        // ==========================================
+        // 2. ANNUNCIO DISPONIBILE
+        // ==========================================
+
+        if (annuncio.getStato()
+                != model.StatoAnnuncio.DISPONIBILE) {
+
+            return false;
+        }
+
+        // ==========================================
+        // 3. RECUPERIAMO IL VENDITORE
+        // ==========================================
+
+        Utente venditore =
+                annuncio.getCreatore();
+
+        if (venditore == null) {
+            return false;
+        }
+
+        // ==========================================
+        // 4. IL CREATORE NON PUÒ ACQUISTARE
+        //    IL PROPRIO ANNUNCIO
+        // ==========================================
+
+        if (venditore.getUsername()
+                .equalsIgnoreCase(
+                        acquirente.getUsername()
+                )) {
+
+            return false;
+        }
+
+        // ==========================================
+        // 5. RECUPERIAMO LE CARTE
+        // ==========================================
+
+        List<CartaFisica> carteInVendita =
+                annuncio.getCarte();
+
+        if (carteInVendita == null
+                || carteInVendita.isEmpty()) {
+
+            return false;
+        }
+
+        // ==========================================
+        // 6. VERIFICA CARTE
+        // ==========================================
+
+        for (CartaFisica carta :
+                carteInVendita) {
+
+            if (carta == null) {
+                return false;
+            }
+
+            boolean presente = false;
+
+            for (CartaFisica cartaInventario :
+                    venditore.getInventario()
+                            .getCarte()) {
+
+                if (cartaInventario.getIdCarta()
+                        == carta.getIdCarta()) {
+
+                    presente = true;
+                    break;
+                }
+            }
+
+            if (!presente) {
+                return false;
+            }
+
+            // La carta non deve essere impegnata
+            // in una proposta di scambio.
+            if (carta.isBloccataInScambio()) {
+                return false;
+            }
+        }
+
+        // ==========================================
+        // 7. TRASFERIMENTO
+        // ==========================================
+
+        List<Integer> carteRimosse =
+                new ArrayList<>();
+
+        List<Integer> carteAggiunte =
+                new ArrayList<>();
+
+        try {
+
+            // --------------------------------------
+            // Rimuoviamo le carte dal venditore
+            // --------------------------------------
+
+            for (CartaFisica carta :
+                    carteInVendita) {
+
+                boolean rimossa =
+                        inventarioDAO.rimuoviCarta(
+                                venditore.getUsername(),
+                                carta.getIdCarta()
+                        );
+
+                if (!rimossa) {
+
+                    throw new IllegalStateException(
+                            "Impossibile rimuovere la carta "
+                                    + carta.getIdCarta()
+                                    + " dal venditore."
+                    );
+                }
+
+                carteRimosse.add(
+                        carta.getIdCarta()
+                );
+            }
+
+            // --------------------------------------
+            // Aggiungiamo le carte all'acquirente
+            // --------------------------------------
+
+            for (CartaFisica carta :
+                    carteInVendita) {
+
+                boolean aggiunta =
+                        inventarioDAO.aggiungiCarta(
+                                acquirente.getUsername(),
+                                carta.getIdCarta()
+                        );
+
+                if (!aggiunta) {
+
+                    throw new IllegalStateException(
+                            "Impossibile aggiungere la carta "
+                                    + carta.getIdCarta()
+                                    + " all'acquirente."
+                    );
+                }
+
+                carteAggiunte.add(
+                        carta.getIdCarta()
+                );
+            }
+
+            // ==========================================
+            // 8. AGGIORNIAMO GLI INVENTARI IN MEMORIA
+            // ==========================================
+
+            for (CartaFisica carta :
+                    carteInVendita) {
+
+                venditore.getInventario()
+                        .rimuoviCarta(carta);
+
+                acquirente.getInventario()
+                        .aggiungiCarta(carta);
+            }
+
+            // ==========================================
+            // 9. CONCLUDIAMO L'ACQUISTO
+            // ==========================================
+
+            annuncio.concludiAcquisto(
+                    acquirente
+            );
+
+            // ==========================================
+            // 10. AGGIORNIAMO L'ANNUNCIO SUL FILE
+            // ==========================================
+
+            if (!annuncioDAO.aggiorna(annuncio)) {
+
+                throw new IllegalStateException(
+                        "Impossibile aggiornare l'annuncio."
+                );
+            }
+
+            return true;
+
+        } catch (Exception e) {
+
+            // ==========================================
+            // ROLLBACK FILE INVENTARI
+            // ==========================================
+
+            for (Integer idCarta :
+                    carteAggiunte) {
+
+                inventarioDAO.rimuoviCarta(
+                        acquirente.getUsername(),
+                        idCarta
+                );
+            }
+
+            for (Integer idCarta :
+                    carteRimosse) {
+
+                inventarioDAO.aggiungiCarta(
+                        venditore.getUsername(),
+                        idCarta
+                );
+            }
+
+            // ==========================================
+            // ROLLBACK IN MEMORIA
+            // ==========================================
+
+            for (CartaFisica carta :
+                    carteInVendita) {
+
+                acquirente.getInventario()
+                        .rimuoviCarta(carta);
+
+                venditore.getInventario()
+                        .aggiungiCarta(carta);
+            }
+
+            // ==========================================
+            // RIPRISTINO STATO ANNUNCIO
+            // ==========================================
+
+            annuncio.setStato(
+                    model.StatoAnnuncio.DISPONIBILE
+            );
+
             return false;
         }
     }

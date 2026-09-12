@@ -42,7 +42,7 @@ public class ControllerUtenti {
         this.cartaDAO = new CartaFisicaFileDAO();
         this.inventarioDAO = new InventarioFileDAO();
 
-        this.annuncioDAO = new AnnuncioFileDAO(utenteDAO,cartaDAO);
+        this.annuncioDAO = new AnnuncioFileDAO(utenteDAO, cartaDAO);
 
         this.propostaDAO = new PropostaScambioFileDAO(
                 utenteDAO,
@@ -59,6 +59,7 @@ public class ControllerUtenti {
         caricaProposteDalFile();
         caricaRecensioniDalFile();
     }
+
     private void caricaAnnunciDalFile() {
         List<Annuncio> annunciSalvati = annuncioDAO.trovaTutti();
 
@@ -118,6 +119,7 @@ public class ControllerUtenti {
             }
         }
     }
+
     private void caricaProposteDalFile() {
         List<PropostaScambio> proposteSalvate =
                 propostaDAO.trovaTutte();
@@ -191,6 +193,7 @@ public class ControllerUtenti {
             }
         }
     }
+
     private Annuncio cercaAnnuncioInPiattaforma(int idAnnuncio) {
         for (Annuncio annuncio : piattaforma.getAnnuncio()) {
             if (annuncio.getIdAnnuncio() == idAnnuncio) {
@@ -200,6 +203,7 @@ public class ControllerUtenti {
 
         return null;
     }
+
     private CartaFisica cercaCartaNelSistema(int idCarta) {
         for (Utente utente : piattaforma.getUtenti()) {
             for (CartaFisica carta : utente.getInventario().getCarte()) {
@@ -211,6 +215,7 @@ public class ControllerUtenti {
 
         return null;
     }
+
     private void caricaRecensioniDalFile() {
         List<Recensione> recensioniSalvate =
                 recensioneDAO.trovaTutte();
@@ -536,13 +541,17 @@ public class ControllerUtenti {
     }
 
     /**
-     * Restituisce la media dei voti ricevuti dall'utente.
+     * Restituisce le recensioni ricevute da un utente.
      */
-    public double calcolaMediaRecensioni(Utente utente) {
+    public List<Recensione> getRecensioni(Utente utente) {
         if (utente == null) {
-            return 0.0;
+            return new ArrayList<>();
         }
 
-        return utente.calcolaMediaRecensioni();
+        return utente.getRecensioniRicevute();
     }
 }
+/**
+ * Restituisce la media dei voti ricevuti dall'utente.
+ */
+

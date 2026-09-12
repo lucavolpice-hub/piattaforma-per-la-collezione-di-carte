@@ -1,8 +1,9 @@
 import controller.ControllerAnnunci;
+import controller.ControllerScambi;
 import controller.ControllerUtenti;
 import controller.Piattaforma;
+
 import Gui.LoginGui;
-import Gui.AreaPersonale;
 import Gui.BachecaAnnunci;
 
 import model.Annuncio;
@@ -15,20 +16,48 @@ public class Main {
 
     public static void main(String[] args) {
 
+        // ==========================================
+        // PIATTAFORMA
+        // ==========================================
+
         Piattaforma piattaforma =
                 new Piattaforma(
                         new ArrayList<Annuncio>(),
                         new ArrayList<PropostaScambio>()
                 );
 
+        // ==========================================
+        // CONTROLLER UTENTI
+        // ==========================================
+
         ControllerUtenti controllerUtenti =
-                new ControllerUtenti(piattaforma);
+                new ControllerUtenti(
+                        piattaforma
+                );
+
+        // ==========================================
+        // CONTROLLER ANNUNCI
+        // ==========================================
 
         ControllerAnnunci controllerAnnunci =
                 new ControllerAnnunci(
                         piattaforma,
                         controllerUtenti
                 );
+
+        // ==========================================
+        // CONTROLLER SCAMBI
+        // ==========================================
+
+        ControllerScambi controllerScambi =
+                new ControllerScambi(
+                        piattaforma,
+                        controllerUtenti
+                );
+
+        // ==========================================
+        // AVVIO GUI
+        // ==========================================
 
         SwingUtilities.invokeLater(() -> {
 
@@ -42,7 +71,8 @@ public class Main {
                                         new BachecaAnnunci(
                                                 utente,
                                                 controllerAnnunci,
-                                                controllerUtenti
+                                                controllerUtenti,
+                                                controllerScambi
                                         );
 
                                 bachecaAnnunci.setVisible(true);

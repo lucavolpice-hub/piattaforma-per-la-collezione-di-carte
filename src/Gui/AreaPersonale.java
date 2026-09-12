@@ -1,7 +1,12 @@
 package Gui;
+import controller.ControllerScambi;
 import controller.ControllerAnnunci;
 import controller.ControllerUtenti;
+
+import model.AnnuncioScambio;
+import model.AnnuncioVendita;
 import model.CartaFisica;
+import model.CategoriaCarta;
 import model.Recensione;
 import model.Utente;
 
@@ -15,21 +20,25 @@ public class AreaPersonale extends JFrame {
     private final Utente utente;
     private final ControllerUtenti controllerUtenti;
     private final ControllerAnnunci controllerAnnunci;
+    private final ControllerScambi controllerScambi;
 
     private final JTable tabellaCarte;
 
     private final JButton pulsanteAggiungi;
     private final JButton pulsanteRimuovi;
+    private final JButton pulsantePubblica;
 
     public AreaPersonale(
             Utente utente,
             ControllerUtenti controllerUtenti,
-            ControllerAnnunci controllerAnnunci
+            ControllerAnnunci controllerAnnunci,
+            ControllerScambi controllerScambi
     ) {
 
         this.utente = utente;
         this.controllerUtenti = controllerUtenti;
         this.controllerAnnunci = controllerAnnunci;
+        this.controllerScambi = controllerScambi;
 
         setTitle("Area Personale - " + utente.getUsername());
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -46,7 +55,6 @@ public class AreaPersonale extends JFrame {
 
         pannelloTitolo.add(titolo);
 
-
         // =========================
         // INVENTARIO
         // =========================
@@ -55,7 +63,9 @@ public class AreaPersonale extends JFrame {
         pannelloCenter.setLayout(new BorderLayout());
 
         JLabel etichettaInventario =
-                new JLabel("IL TUO INVENTARIO (Carte Disponibili)");
+                new JLabel(
+                        "IL TUO INVENTARIO (Carte Disponibili)"
+                );
 
         String[] colonneCarte = {
                 "Id",
@@ -68,12 +78,15 @@ public class AreaPersonale extends JFrame {
                 creaDatiTabellaCarte();
 
         tabellaCarte =
-                new JTable(datiCarte, colonneCarte);
+                new JTable(
+                        datiCarte,
+                        colonneCarte
+                );
 
         tabellaCarte.setRowHeight(24);
 
         tabellaCarte.setPreferredScrollableViewportSize(
-                new Dimension(650, 60)
+                new Dimension(650, 100)
         );
 
         tabellaCarte.setSelectionMode(
@@ -85,6 +98,7 @@ public class AreaPersonale extends JFrame {
                         datiCarte,
                         colonneCarte
                 ) {
+
                     @Override
                     public boolean isCellEditable(
                             int row,
@@ -99,9 +113,8 @@ public class AreaPersonale extends JFrame {
                 new JScrollPane(tabellaCarte);
 
         scrollTabella.setPreferredSize(
-                new Dimension(800, 100)
+                new Dimension(800, 130)
         );
-
 
         // =========================
         // BOTTONI INVENTARIO
@@ -120,6 +133,9 @@ public class AreaPersonale extends JFrame {
         pulsanteRimuovi =
                 new JButton("Rimuovi Carta");
 
+        pulsantePubblica =
+                new JButton("Pubblica Annuncio");
+
         pannelloBottoniInventario.add(
                 pulsanteAggiungi
         );
@@ -128,6 +144,9 @@ public class AreaPersonale extends JFrame {
                 pulsanteRimuovi
         );
 
+        pannelloBottoniInventario.add(
+                pulsantePubblica
+        );
 
         pannelloCenter.add(
                 etichettaInventario,
@@ -144,7 +163,6 @@ public class AreaPersonale extends JFrame {
                 BorderLayout.SOUTH
         );
 
-
         // =========================
         // LISTENER INVENTARIO
         // =========================
@@ -157,6 +175,9 @@ public class AreaPersonale extends JFrame {
                 e -> rimuoviCartaSelezionata()
         );
 
+        pulsantePubblica.addActionListener(
+                e -> pubblicaAnnuncio()
+        );
 
         // =========================
         // RECENSIONE
@@ -176,13 +197,16 @@ public class AreaPersonale extends JFrame {
                 new JLabel("LASCIA UNA RECENSIONE");
 
         etichettaRecensione.setFont(
-                new Font("Arial", Font.BOLD, 16)
+                new Font(
+                        "Arial",
+                        Font.BOLD,
+                        16
+                )
         );
 
         etichettaRecensione.setAlignmentX(
                 Component.CENTER_ALIGNMENT
         );
-
 
         // =========================
         // VENDITORE + VOTO
@@ -192,7 +216,9 @@ public class AreaPersonale extends JFrame {
                 new JPanel();
 
         rigaVenditoreVoto.setLayout(
-                new FlowLayout(FlowLayout.LEFT)
+                new FlowLayout(
+                        FlowLayout.LEFT
+                )
         );
 
         JLabel etichettaVenditore =
@@ -231,7 +257,6 @@ public class AreaPersonale extends JFrame {
                 comboVoto
         );
 
-
         // =========================
         // COMMENTO
         // =========================
@@ -240,14 +265,18 @@ public class AreaPersonale extends JFrame {
                 new JLabel("Commento:");
 
         JTextArea areaCommento =
-                new JTextArea(3, 30);
+                new JTextArea(
+                        3,
+                        30
+                );
 
         areaCommento.setLineWrap(true);
         areaCommento.setWrapStyleWord(true);
 
         JScrollPane scrollCommento =
-                new JScrollPane(areaCommento);
-
+                new JScrollPane(
+                        areaCommento
+                );
 
         // =========================
         // BOTTONI RECENSIONE
@@ -261,23 +290,31 @@ public class AreaPersonale extends JFrame {
         );
 
         JButton pulsanteInvia =
-                new JButton("Invia Recensione");
+                new JButton(
+                        "Invia Recensione"
+                );
 
         JButton pulsanteTorna =
-                new JButton("Torna ad Annunci");
-        pulsanteTorna.addActionListener(e -> {
+                new JButton(
+                        "Torna ad Annunci"
+                );
 
-            BachecaAnnunci bachecaAnnunci =
-                    new BachecaAnnunci(
-                            utente,
-                            controllerAnnunci,
-                            controllerUtenti
-                    );
+        pulsanteTorna.addActionListener(
+                e -> {
 
-            bachecaAnnunci.setVisible(true);
+                    BachecaAnnunci bachecaAnnunci =
+                            new BachecaAnnunci(
+                                    utente,
+                                    controllerAnnunci,
+                                    controllerUtenti,
+                                    controllerScambi
+                            );
 
-            dispose();
-        });
+                    bachecaAnnunci.setVisible(true);
+
+                    dispose();
+                }
+        );
 
         rigaBottoniRecensione.add(
                 pulsanteInvia
@@ -286,7 +323,6 @@ public class AreaPersonale extends JFrame {
         rigaBottoniRecensione.add(
                 pulsanteTorna
         );
-
 
         // =========================
         // LISTENER RECENSIONE
@@ -300,9 +336,8 @@ public class AreaPersonale extends JFrame {
                 )
         );
 
-
         // =========================
-        // COSTRUZIONE PANNELLO
+        // COSTRUZIONE RECENSIONE
         // =========================
 
         pannelloRecensione.add(
@@ -341,7 +376,6 @@ public class AreaPersonale extends JFrame {
                 rigaBottoniRecensione
         );
 
-
         // =========================
         // FRAME
         // =========================
@@ -366,6 +400,317 @@ public class AreaPersonale extends JFrame {
         setLocationRelativeTo(null);
     }
 
+    // =====================================================
+    // PUBBLICA ANNUNCIO
+    // =====================================================
+
+    private void pubblicaAnnuncio() {
+
+        int rigaSelezionata =
+                tabellaCarte.getSelectedRow();
+
+        if (rigaSelezionata == -1) {
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Seleziona prima una carta dall'inventario.",
+                    "Nessuna carta selezionata",
+                    JOptionPane.WARNING_MESSAGE
+            );
+
+            return;
+        }
+
+        int idCarta =
+                (Integer) tabellaCarte.getValueAt(
+                        rigaSelezionata,
+                        0
+                );
+
+        CartaFisica cartaSelezionata = null;
+
+        for (CartaFisica carta :
+                utente.getInventario().getCarte()) {
+
+            if (carta.getIdCarta() == idCarta) {
+
+                cartaSelezionata = carta;
+                break;
+            }
+        }
+
+        if (cartaSelezionata == null) {
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Carta non trovata nell'inventario.",
+                    "Errore",
+                    JOptionPane.ERROR_MESSAGE
+            );
+
+            return;
+        }
+
+        // =========================
+        // TIPO ANNUNCIO
+        // =========================
+
+        String[] tipi = {
+                "Vendita",
+                "Scambio"
+        };
+
+        String tipoScelto =
+                (String) JOptionPane.showInputDialog(
+                        this,
+                        "Cosa vuoi fare con "
+                                + cartaSelezionata.getNomeCarta()
+                                + "?",
+                        "Pubblica Annuncio",
+                        JOptionPane.QUESTION_MESSAGE,
+                        null,
+                        tipi,
+                        tipi[0]
+                );
+
+        if (tipoScelto == null) {
+            return;
+        }
+
+        // =========================
+        // DESCRIZIONE
+        // =========================
+
+        String descrizione =
+                JOptionPane.showInputDialog(
+                        this,
+                        "Inserisci la descrizione dell'annuncio:",
+                        "Descrizione",
+                        JOptionPane.PLAIN_MESSAGE
+                );
+
+        if (descrizione == null
+                || descrizione.isBlank()) {
+            return;
+        }
+
+        // =========================
+        // CATEGORIA
+        // =========================
+
+        String[] categorie = {
+                "Singola",
+                "Set",
+                "Box"
+        };
+
+        String categoriaScelta =
+                (String) JOptionPane.showInputDialog(
+                        this,
+                        "Seleziona la categoria:",
+                        "Categoria",
+                        JOptionPane.QUESTION_MESSAGE,
+                        null,
+                        categorie,
+                        categorie[0]
+                );
+
+        if (categoriaScelta == null) {
+            return;
+        }
+
+        CategoriaCarta categoria;
+
+        switch (categoriaScelta) {
+
+            case "Singola":
+                categoria =
+                        CategoriaCarta.CARTA_SINGOLA;
+                break;
+
+            case "Set":
+                categoria =
+                        CategoriaCarta.LOTTO;
+                break;
+
+            case "Box":
+                categoria =
+                        CategoriaCarta.BOX;
+                break;
+
+            default:
+                return;
+        }
+
+        // =========================
+        // VENDITA
+        // =========================
+
+        if (tipoScelto.equals("Vendita")) {
+
+            String prezzoStringa =
+                    JOptionPane.showInputDialog(
+                            this,
+                            "Inserisci il prezzo in euro:",
+                            "Prezzo",
+                            JOptionPane.PLAIN_MESSAGE
+                    );
+
+            if (prezzoStringa == null) {
+                return;
+            }
+
+            try {
+
+                double prezzo =
+                        Double.parseDouble(
+                                prezzoStringa.trim()
+                        );
+
+                if (prezzo <= 0) {
+
+                    JOptionPane.showMessageDialog(
+                            this,
+                            "Il prezzo deve essere maggiore di zero.",
+                            "Errore",
+                            JOptionPane.ERROR_MESSAGE
+                    );
+
+                    return;
+                }
+
+                AnnuncioVendita annuncio =
+                        controllerAnnunci.pubblicaAnnuncioVendita(
+                                utente,
+                                descrizione,
+                                categoria,
+                                prezzo,
+                                cartaSelezionata
+                        );
+
+                if (annuncio == null) {
+
+                    JOptionPane.showMessageDialog(
+                            this,
+                            "Impossibile pubblicare l'annuncio.\n"
+                                    + "La carta potrebbe essere già presente "
+                                    + "in un altro annuncio.",
+                            "Errore",
+                            JOptionPane.ERROR_MESSAGE
+                    );
+
+                    return;
+                }
+
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Annuncio di vendita pubblicato!\n\n"
+                                + "ID annuncio: "
+                                + annuncio.getIdAnnuncio()
+                                + "\nCarta: "
+                                + cartaSelezionata.getNomeCarta()
+                                + "\nPrezzo: "
+                                + prezzo
+                                + " €",
+                        "Annuncio pubblicato",
+                        JOptionPane.INFORMATION_MESSAGE
+                );
+
+            } catch (NumberFormatException ex) {
+
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Inserisci un prezzo numerico valido.",
+                        "Errore",
+                        JOptionPane.ERROR_MESSAGE
+                );
+            }
+
+            return;
+        }
+
+        // =========================
+        // SCAMBIO
+        // =========================
+
+        String valoreStringa =
+                JOptionPane.showInputDialog(
+                        this,
+                        "Inserisci il valore di riferimento della carta:",
+                        "Valore di riferimento",
+                        JOptionPane.PLAIN_MESSAGE
+                );
+
+        if (valoreStringa == null) {
+            return;
+        }
+
+        try {
+
+            double valore =
+                    Double.parseDouble(
+                            valoreStringa.trim()
+                    );
+
+            if (valore <= 0) {
+
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Il valore deve essere maggiore di zero.",
+                        "Errore",
+                        JOptionPane.ERROR_MESSAGE
+                );
+
+                return;
+            }
+
+            AnnuncioScambio annuncio =
+                    controllerAnnunci.pubblicaAnnuncioScambio(
+                            utente,
+                            descrizione,
+                            categoria,
+                            valore,
+                            cartaSelezionata
+                    );
+
+            if (annuncio == null) {
+
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Impossibile pubblicare l'annuncio.\n"
+                                + "La carta potrebbe essere già presente "
+                                + "in un altro annuncio.",
+                        "Errore",
+                        JOptionPane.ERROR_MESSAGE
+                );
+
+                return;
+            }
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Annuncio di scambio pubblicato!\n\n"
+                            + "ID annuncio: "
+                            + annuncio.getIdAnnuncio()
+                            + "\nCarta: "
+                            + cartaSelezionata.getNomeCarta()
+                            + "\nValore di riferimento: "
+                            + valore
+                            + " €",
+                    "Annuncio pubblicato",
+                    JOptionPane.INFORMATION_MESSAGE
+            );
+
+        } catch (NumberFormatException ex) {
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Inserisci un valore numerico valido.",
+                    "Errore",
+                    JOptionPane.ERROR_MESSAGE
+            );
+        }
+    }
 
     // =====================================================
     // TABELLA CARTE
@@ -401,7 +746,6 @@ public class AreaPersonale extends JFrame {
 
         return dati;
     }
-
 
     // =====================================================
     // AGGIUNGI CARTA
@@ -565,7 +909,6 @@ public class AreaPersonale extends JFrame {
         }
     }
 
-
     // =====================================================
     // RIMUOVI CARTA
     // =====================================================
@@ -601,7 +944,6 @@ public class AreaPersonale extends JFrame {
             if (carta.getIdCarta() == idCarta) {
 
                 cartaDaRimuovere = carta;
-
                 break;
             }
         }
@@ -672,7 +1014,6 @@ public class AreaPersonale extends JFrame {
         );
     }
 
-
     // =====================================================
     // LASCIA RECENSIONE
     // =====================================================
@@ -689,9 +1030,6 @@ public class AreaPersonale extends JFrame {
         String commento =
                 areaCommento.getText().trim();
 
-
-        // Controllo campi vuoti
-
         if (usernameVenditore.isBlank()
                 || commento.isBlank()) {
 
@@ -704,9 +1042,6 @@ public class AreaPersonale extends JFrame {
 
             return;
         }
-
-
-        // Cerco il venditore
 
         Utente venditore =
                 controllerUtenti.cercaUtente(
@@ -725,19 +1060,8 @@ public class AreaPersonale extends JFrame {
             return;
         }
 
-
-        // Il ComboBox contiene:
-        // indice 0 -> 5 stelle
-        // indice 1 -> 4 stelle
-        // indice 2 -> 3 stelle
-        // indice 3 -> 2 stelle
-        // indice 4 -> 1 stella
-
         int voto =
                 5 - comboVoto.getSelectedIndex();
-
-
-        // Creo la recensione
 
         Recensione recensione =
                 new Recensione(
@@ -746,9 +1070,6 @@ public class AreaPersonale extends JFrame {
                         utente,
                         venditore
                 );
-
-
-        // Invio la recensione al controller
 
         boolean aggiunta =
                 controllerUtenti.aggiungiRecensione(
@@ -767,9 +1088,6 @@ public class AreaPersonale extends JFrame {
             return;
         }
 
-
-        // Conferma
-
         JOptionPane.showMessageDialog(
                 this,
                 "Recensione inviata con successo!",
@@ -777,16 +1095,10 @@ public class AreaPersonale extends JFrame {
                 JOptionPane.INFORMATION_MESSAGE
         );
 
-
-        // Pulisco i campi
-
         campoVenditore.setText("");
-
         areaCommento.setText("");
-
         comboVoto.setSelectedIndex(0);
     }
-
 
     // =====================================================
     // AGGIORNA TABELLA
@@ -827,3 +1139,4 @@ public class AreaPersonale extends JFrame {
         );
     }
 }
+
