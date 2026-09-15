@@ -7,30 +7,11 @@ import model.Annuncio;
 import model.PropostaScambio;
 import model.Utente;
 
-/**
- * Rappresenta l'archivio centrale della piattaforma.
- *
- * Questa classe conserva i dati condivisi dai futuri controller.
- * Per ora i dati restano soltanto in memoria: vengono persi
- * quando il programma termina.
- *
- * Al momento viene mantenuta solo la lista degli utenti, perché
- * le classi necessarie per annunci e proposte di scambio non sono
- * ancora complete. Quelle liste verranno aggiunte in seguito.
- */
 public class Piattaforma {
 
-    /*
-     * Elenco degli utenti registrati nella piattaforma.
-     * La lista è privata: altre classi possono usarla tramite
-     * i metodi pubblici, senza sostituirla accidentalmente.
-     */
     private final List<Utente> utenti;
     private final List<Annuncio>annuncio;
     private final List<PropostaScambio>proposteScambio;
-    /**
-     * Crea una piattaforma inizialmente priva di utenti.
-     */
 
     public Piattaforma(List<Annuncio> annuncio, List<PropostaScambio> proposteScambio) {
         this.annuncio = annuncio;
@@ -61,8 +42,6 @@ public class Piattaforma {
      * <p>
      * Il controllo su username vuoto o duplicato non viene fatto qui:
      * sarà responsabilità di ControllerUtenti, quando verrà creato.
-     *
-     * @param utente utente da memorizzare
      */
     public void aggiungiUtente(Utente utente) {
         if (utente != null) {

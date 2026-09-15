@@ -48,9 +48,7 @@ public class BachecaAnnunci extends JFrame {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout(10, 10));
 
-        // =========================
         // NORTH: TITOLO
-        // =========================
 
         JPanel pannelloTitolo = new JPanel();
 
@@ -73,9 +71,7 @@ public class BachecaAnnunci extends JFrame {
 
         pannelloTitolo.add(titolo);
 
-        // =========================
         // CENTER
-        // =========================
 
         JPanel pannelloCenter = new JPanel();
 
@@ -89,9 +85,7 @@ public class BachecaAnnunci extends JFrame {
                 )
         );
 
-        // =========================
         // FILTRI
-        // =========================
 
         JPanel pannelloFiltri = new JPanel();
 
@@ -181,9 +175,7 @@ public class BachecaAnnunci extends JFrame {
         pannelloFiltri.add(rigaCombo);
         pannelloFiltri.add(rigaBottone);
 
-        // =========================
         // TABELLA
-        // =========================
 
         String[] colonne = {
                 "Nome Oggetto",
@@ -231,9 +223,7 @@ public class BachecaAnnunci extends JFrame {
                 BorderLayout.CENTER
         );
 
-        // =========================
         // SOUTH: PULSANTI
-        // =========================
 
         JPanel pannelloPulsanti =
                 new JPanel();
@@ -266,25 +256,19 @@ public class BachecaAnnunci extends JFrame {
                 pulsanteProfilo
         );
 
-        // =========================
         // LISTENER CERCA
-        // =========================
 
         pulsanteCerca.addActionListener(
                 e -> applicaFiltri()
         );
 
-        // =========================
         // LISTENER PROPOSTA / ACQUISTO
-        // =========================
 
         pulsanteProposta.addActionListener(
                 e -> gestisciPropostaOAcquisto()
         );
 
-        // =========================
         // LISTENER PROFILO
-        // =========================
 
         pulsanteProfilo.addActionListener(
                 e -> {
@@ -328,9 +312,7 @@ public class BachecaAnnunci extends JFrame {
         applicaFiltri();
     }
 
-    // =====================================================
     // APPLICA FILTRI
-    // =====================================================
 
     private void applicaFiltri() {
 
@@ -460,9 +442,7 @@ public class BachecaAnnunci extends JFrame {
         );
     }
 
-    // =====================================================
     // PROPOSTA / ACQUISTO
-    // =====================================================
 
     private void gestisciPropostaOAcquisto() {
 
@@ -488,9 +468,7 @@ public class BachecaAnnunci extends JFrame {
         Annuncio annuncio =
                 annunciVisualizzati.get(rigaSelezionata);
 
-        // ==========================================
         // PROPOSTA DI SCAMBIO
-        // ==========================================
 
         if (annuncio instanceof AnnuncioScambio) {
 
@@ -660,9 +638,7 @@ public class BachecaAnnunci extends JFrame {
             return;
         }
 
-        // ==========================================
         // ACQUISTO
-        // ==========================================
 
         if (annuncio instanceof AnnuncioVendita) {
 

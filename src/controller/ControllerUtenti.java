@@ -528,18 +528,15 @@ public class ControllerUtenti {
         if (!piattaforma.getUtenti().contains(destinatario)) {
             return false;
         }
-
         // Salvataggio persistente
         if (!recensioneDAO.salva(recensione)) {
             return false;
         }
-
         // Aggiornamento del modello in memoria
         destinatario.aggiungiRecensioneRicevuta(recensione);
 
         return true;
     }
-
     /**
      * Restituisce le recensioni ricevute da un utente.
      */
@@ -554,4 +551,3 @@ public class ControllerUtenti {
 /**
  * Restituisce la media dei voti ricevuti dall'utente.
  */
-

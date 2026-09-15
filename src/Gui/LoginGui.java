@@ -30,9 +30,7 @@ public class LoginGui extends JFrame {
         btnAccedi = new JButton("Accedi");
         btnRegistrati = new JButton("Registrati");
 
-        // ==========================================
         // COLORI
-        // ==========================================
 
         Color sfondo = new Color(28, 39, 58);
         Color pannello = new Color(245, 247, 250);
@@ -40,9 +38,7 @@ public class LoginGui extends JFrame {
         Color bordo = new Color(180, 190, 205);
         Color bluScuro = new Color(15, 35, 65);
 
-        // ==========================================
         // FINESTRA
-        // ==========================================
 
         setTitle("TCG Trade - Accesso");
         setSize(520, 360);
@@ -54,9 +50,7 @@ public class LoginGui extends JFrame {
         getContentPane().setBackground(sfondo);
         setLayout(new BorderLayout());
 
-        // ==========================================
         // TITOLO
-        // ==========================================
 
         JPanel panelTitolo = new JPanel(new BorderLayout());
         panelTitolo.setBackground(sfondo);
@@ -88,9 +82,7 @@ public class LoginGui extends JFrame {
                 BorderLayout.NORTH
         );
 
-        // ==========================================
         // PANNELLO CENTRALE
-        // ==========================================
 
         JPanel panelCentro =
                 new JPanel(new BorderLayout());
@@ -103,9 +95,7 @@ public class LoginGui extends JFrame {
                 )
         );
 
-        // ==========================================
         // FORM
-        // ==========================================
 
         JPanel panelForm =
                 new JPanel(
@@ -165,9 +155,7 @@ public class LoginGui extends JFrame {
                 BorderLayout.CENTER
         );
 
-        // ==========================================
         // BOTTONI
-        // ==========================================
 
         JPanel panelBottoni =
                 new JPanel(
@@ -198,9 +186,7 @@ public class LoginGui extends JFrame {
                 BorderLayout.SOUTH
         );
 
-        // ==========================================
         // LISTENER
-        // ==========================================
 
         btnAccedi.addActionListener(e ->
                 eseguiLogin()
@@ -215,9 +201,7 @@ public class LoginGui extends JFrame {
         );
     }
 
-// ==========================================
 // CONFIGURAZIONE CAMPI
-// ==========================================
 
     private void configuraCampo(
             JTextField campo,
@@ -258,9 +242,7 @@ public class LoginGui extends JFrame {
         );
     }
 
-// ==========================================
 // CONFIGURAZIONE BOTTONI
-// ==========================================
 
     private void configuraBottone(
             JButton bottone,
@@ -308,9 +290,7 @@ public class LoginGui extends JFrame {
         );
     }
 
-// ==========================================
 // LOGIN
-// ==========================================
 
     private void eseguiLogin() {
 
@@ -382,9 +362,7 @@ public class LoginGui extends JFrame {
         }
     }
 
-// ==========================================
 // REGISTRAZIONE
-// ==========================================
 
     private void eseguiRegistrazione() {
 

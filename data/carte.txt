@@ -2,3 +2,4 @@
 11;Squirtle;Good;Inglese;false
 25;Charizard;Mint;Italiano;false
 3;pikachu;Good;Inglese;false
+7;dragon;buona;italiano;false

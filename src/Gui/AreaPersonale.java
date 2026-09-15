@@ -55,9 +55,7 @@ public class AreaPersonale extends JFrame {
 
         pannelloTitolo.add(titolo);
 
-        // =========================
         // INVENTARIO
-        // =========================
 
         JPanel pannelloCenter = new JPanel();
         pannelloCenter.setLayout(new BorderLayout());
@@ -116,9 +114,7 @@ public class AreaPersonale extends JFrame {
                 new Dimension(800, 130)
         );
 
-        // =========================
         // BOTTONI INVENTARIO
-        // =========================
 
         JPanel pannelloBottoniInventario =
                 new JPanel();
@@ -163,9 +159,7 @@ public class AreaPersonale extends JFrame {
                 BorderLayout.SOUTH
         );
 
-        // =========================
         // LISTENER INVENTARIO
-        // =========================
 
         pulsanteAggiungi.addActionListener(
                 e -> aggiungiNuovaCarta()
@@ -208,9 +202,7 @@ public class AreaPersonale extends JFrame {
                 Component.CENTER_ALIGNMENT
         );
 
-        // =========================
         // VENDITORE + VOTO
-        // =========================
 
         JPanel rigaVenditoreVoto =
                 new JPanel();
@@ -257,9 +249,8 @@ public class AreaPersonale extends JFrame {
                 comboVoto
         );
 
-        // =========================
+
         // COMMENTO
-        // =========================
 
         JLabel etichettaCommento =
                 new JLabel("Commento:");
@@ -278,9 +269,7 @@ public class AreaPersonale extends JFrame {
                         areaCommento
                 );
 
-        // =========================
         // BOTTONI RECENSIONE
-        // =========================
 
         JPanel rigaBottoniRecensione =
                 new JPanel();
@@ -324,9 +313,7 @@ public class AreaPersonale extends JFrame {
                 pulsanteTorna
         );
 
-        // =========================
         // LISTENER RECENSIONE
-        // =========================
 
         pulsanteInvia.addActionListener(
                 e -> lasciaRecensione(
@@ -336,9 +323,7 @@ public class AreaPersonale extends JFrame {
                 )
         );
 
-        // =========================
         // COSTRUZIONE RECENSIONE
-        // =========================
 
         pannelloRecensione.add(
                 etichettaRecensione
@@ -376,9 +361,7 @@ public class AreaPersonale extends JFrame {
                 rigaBottoniRecensione
         );
 
-        // =========================
         // FRAME
-        // =========================
 
         add(
                 pannelloTitolo,
@@ -400,9 +383,7 @@ public class AreaPersonale extends JFrame {
         setLocationRelativeTo(null);
     }
 
-    // =====================================================
     // PUBBLICA ANNUNCIO
-    // =====================================================
 
     private void pubblicaAnnuncio() {
 
@@ -451,9 +432,7 @@ public class AreaPersonale extends JFrame {
             return;
         }
 
-        // =========================
         // TIPO ANNUNCIO
-        // =========================
 
         String[] tipi = {
                 "Vendita",
@@ -477,9 +456,7 @@ public class AreaPersonale extends JFrame {
             return;
         }
 
-        // =========================
         // DESCRIZIONE
-        // =========================
 
         String descrizione =
                 JOptionPane.showInputDialog(
@@ -494,9 +471,7 @@ public class AreaPersonale extends JFrame {
             return;
         }
 
-        // =========================
         // CATEGORIA
-        // =========================
 
         String[] categorie = {
                 "Singola",
@@ -542,9 +517,7 @@ public class AreaPersonale extends JFrame {
                 return;
         }
 
-        // =========================
         // VENDITA
-        // =========================
 
         if (tipoScelto.equals("Vendita")) {
 
@@ -629,9 +602,7 @@ public class AreaPersonale extends JFrame {
             return;
         }
 
-        // =========================
         // SCAMBIO
-        // =========================
 
         String valoreStringa =
                 JOptionPane.showInputDialog(
@@ -712,9 +683,7 @@ public class AreaPersonale extends JFrame {
         }
     }
 
-    // =====================================================
     // TABELLA CARTE
-    // =====================================================
 
     private Object[][] creaDatiTabellaCarte() {
 
@@ -747,9 +716,7 @@ public class AreaPersonale extends JFrame {
         return dati;
     }
 
-    // =====================================================
     // AGGIUNGI CARTA
-    // =====================================================
 
     private void aggiungiNuovaCarta() {
 
@@ -909,9 +876,7 @@ public class AreaPersonale extends JFrame {
         }
     }
 
-    // =====================================================
     // RIMUOVI CARTA
-    // =====================================================
 
     private void rimuoviCartaSelezionata() {
 
@@ -1014,9 +979,7 @@ public class AreaPersonale extends JFrame {
         );
     }
 
-    // =====================================================
     // LASCIA RECENSIONE
-    // =====================================================
 
     private void lasciaRecensione(
             JTextField campoVenditore,
@@ -1100,9 +1063,7 @@ public class AreaPersonale extends JFrame {
         comboVoto.setSelectedIndex(0);
     }
 
-    // =====================================================
     // AGGIORNA TABELLA
-    // =====================================================
 
     private void aggiornaTabellaCarte() {
 
