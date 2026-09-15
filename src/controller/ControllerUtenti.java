@@ -419,10 +419,8 @@ public class ControllerUtenti {
     /**
      * Rimuove una carta dall'inventario dell'utente e dai file.
      */
-    public boolean rimuoviCartaInventario(
-            Utente utente,
-            CartaFisica carta
-    ) {
+    public boolean rimuoviCartaInventario(Utente utente, CartaFisica carta) {
+
         if (utente == null || carta == null) {
             return false;
         }
@@ -431,10 +429,23 @@ public class ControllerUtenti {
             return false;
         }
 
-        boolean collegamentoRimosso = inventarioDAO.rimuoviCarta(
-                utente.getUsername(),
-                carta.getIdCarta()
-        );
+        // FIX: la carta non può essere rimossa se è ancora
+        // presente in un annuncio non concluso
+        for (Annuncio annuncio : piattaforma.getAnnuncio()) {
+
+            if (annuncio.getStato() == model.StatoAnnuncio.CONCLUSO) {
+                continue;
+            }
+
+            for (CartaFisica cartaAnnuncio : annuncio.getCarte()) {
+                if (cartaAnnuncio.getIdCarta() == carta.getIdCarta()) {
+                    return false;
+                }
+            }
+        }
+
+        boolean collegamentoRimosso =
+                inventarioDAO.rimuoviCarta(utente.getUsername(), carta.getIdCarta());
 
         if (!collegamentoRimosso) {
             return false;
@@ -443,10 +454,7 @@ public class ControllerUtenti {
         boolean cartaEliminata = cartaDAO.elimina(carta.getIdCarta());
 
         if (!cartaEliminata) {
-            inventarioDAO.aggiungiCarta(
-                    utente.getUsername(),
-                    carta.getIdCarta()
-            );
+            inventarioDAO.aggiungiCarta(utente.getUsername(), carta.getIdCarta());
             return false;
         }
 

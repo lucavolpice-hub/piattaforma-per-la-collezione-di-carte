@@ -233,9 +233,7 @@ public class ControllerScambi {
             PropostaScambio proposta
     ) {
 
-        // ==========================================
         // 1. CONTROLLI DI BASE
-        // ==========================================
 
         if (utenteCheAccetta == null || proposta == null) {
             return false;
@@ -245,9 +243,7 @@ public class ControllerScambi {
             return false;
         }
 
-        // ==========================================
         // 2. LA PROPOSTA DEVE ESSERE IN ATTESA
-        // ==========================================
 
         if (proposta.getStato()
                 != model.StatoProposta.IN_ATTESA) {
@@ -261,18 +257,14 @@ public class ControllerScambi {
             return false;
         }
 
-        // ==========================================
         // 3. L'ANNUNCIO DEVE ESSERE IN TRATTATIVA
-        // ==========================================
 
         if (annuncio.getStato()
                 != model.StatoAnnuncio.IN_TRATTATIVA) {
             return false;
         }
 
-        // ==========================================
         // 4. RECUPERIAMO I DUE UTENTI
-        // ==========================================
 
         Utente proprietarioAnnuncio =
                 annuncio.getCreatore();
@@ -285,10 +277,8 @@ public class ControllerScambi {
             return false;
         }
 
-        // ==========================================
         // 5. SOLO IL PROPRIETARIO DELL'ANNUNCIO
         //    PUÒ ACCETTARE LA PROPOSTA
-        // ==========================================
 
         if (!proprietarioAnnuncio.getUsername()
                 .equalsIgnoreCase(
@@ -296,19 +286,13 @@ public class ControllerScambi {
             return false;
         }
 
-        // ==========================================
         // 6. IL PROPRIETARIO NON PUÒ ESSERE
         //    ANCHE IL PROPONENTE
-        // ==========================================
 
         if (proprietarioAnnuncio.getUsername()
                 .equalsIgnoreCase(proponente.getUsername())) {
             return false;
         }
-
-        // ==========================================
-        // 7. RECUPERIAMO LE CARTE
-        // ==========================================
 
         List<CartaFisica> carteRichieste =
                 annuncio.getCarte();
@@ -323,10 +307,8 @@ public class ControllerScambi {
             return false;
         }
 
-        // ==========================================
         // 8. LE CARTE DELL'ANNUNCIO DEVONO
         //    ESSERE ANCORA DEL PROPRIETARIO
-        // ==========================================
 
         for (CartaFisica carta : carteRichieste) {
 
@@ -355,10 +337,8 @@ public class ControllerScambi {
             }
         }
 
-        // ==========================================
         // 9. LE CARTE OFFERTE DEVONO ESSERE
         //    ANCORA DI PROPRIETÀ DEL PROPONENTE
-        // ==========================================
 
         for (CartaFisica carta : carteOfferte) {
 
@@ -381,16 +361,12 @@ public class ControllerScambi {
                 return false;
             }
 
-            // Devono essere bloccate perché appartengono
-            // alla proposta che stiamo accettando.
             if (!carta.isBloccataInScambio()) {
                 return false;
             }
         }
 
-        // ==========================================
         // 10. TRASFERIMENTO
-        // ==========================================
 
         boolean trasferimentoRiuscito =
                 trasferisciCarte(
@@ -404,9 +380,7 @@ public class ControllerScambi {
             return false;
         }
 
-        // ==========================================
         // 11. AGGIORNAMENTO DEGLI STATI
-        // ==========================================
 
         proposta.accetta();
 
@@ -419,9 +393,7 @@ public class ControllerScambi {
             return false;
         }
 
-        // ==========================================
         // 12. RIFIUTIAMO LE ALTRE PROPOSTE
-        // ==========================================
 
         for (PropostaScambio altraProposta :
                 piattaforma.getProposteScambio()) {
@@ -570,9 +542,7 @@ public class ControllerScambi {
 
         try {
 
-            // ==========================================
             // 1. RIMUOVIAMO LE CARTE DA PEACH
-            // ==========================================
 
             for (CartaFisica carta : carteOfferte) {
 
@@ -591,9 +561,7 @@ public class ControllerScambi {
                 offerteRimosse.add(carta.getIdCarta());
             }
 
-            // ==========================================
             // 2. RIMUOVIAMO LE CARTE DA MARIO
-            // ==========================================
 
             for (CartaFisica carta : carteRichieste) {
 
@@ -612,9 +580,7 @@ public class ControllerScambi {
                 richiesteRimosse.add(carta.getIdCarta());
             }
 
-            // ==========================================
             // 3. AGGIUNGIAMO LE CARTE DI PEACH A MARIO
-            // ==========================================
 
             for (CartaFisica carta : carteOfferte) {
 
@@ -631,9 +597,7 @@ public class ControllerScambi {
                 }
             }
 
-            // ==========================================
             // 4. AGGIUNGIAMO LE CARTE DI MARIO A PEACH
-            // ==========================================
 
             for (CartaFisica carta : carteRichieste) {
 
@@ -649,10 +613,7 @@ public class ControllerScambi {
                     );
                 }
             }
-
-            // ==========================================
             // 5. AGGIORNIAMO GLI INVENTARI IN MEMORIA
-            // ==========================================
 
             for (CartaFisica carta : carteOfferte) {
 
@@ -674,9 +635,7 @@ public class ControllerScambi {
                         .aggiungiCarta(carta);
             }
 
-            // ==========================================
             // 6. SBLOCCO DELLE CARTE
-            // ==========================================
 
             for (CartaFisica carta : carteOfferte) {
 
@@ -706,9 +665,7 @@ public class ControllerScambi {
 
         } catch (Exception e) {
 
-            // ==========================================
             // ROLLBACK DEL FILE INVENTARI
-            // ==========================================
 
             /*
              * Prima eliminiamo eventuali carte che siamo riusciti

@@ -1,18 +1,23 @@
 package Gui;
+
 import controller.ControllerScambi;
 import controller.ControllerAnnunci;
 import controller.ControllerUtenti;
 
+import model.Annuncio;
 import model.AnnuncioScambio;
 import model.AnnuncioVendita;
 import model.CartaFisica;
 import model.CategoriaCarta;
+import model.PropostaScambio;
 import model.Recensione;
+import model.StatoProposta;
 import model.Utente;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.util.ArrayList;
 import java.util.List;
 
 public class AreaPersonale extends JFrame {
@@ -27,6 +32,7 @@ public class AreaPersonale extends JFrame {
     private final JButton pulsanteAggiungi;
     private final JButton pulsanteRimuovi;
     private final JButton pulsantePubblica;
+    private final JButton pulsanteProposteRicevute;
 
     public AreaPersonale(
             Utente utente,
@@ -44,9 +50,7 @@ public class AreaPersonale extends JFrame {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
 
-        // =========================
         // TITOLO
-        // =========================
 
         JPanel pannelloTitolo = new JPanel();
 
@@ -96,7 +100,6 @@ public class AreaPersonale extends JFrame {
                         datiCarte,
                         colonneCarte
                 ) {
-
                     @Override
                     public boolean isCellEditable(
                             int row,
@@ -132,6 +135,9 @@ public class AreaPersonale extends JFrame {
         pulsantePubblica =
                 new JButton("Pubblica Annuncio");
 
+        pulsanteProposteRicevute =
+                new JButton("Proposte Ricevute");
+
         pannelloBottoniInventario.add(
                 pulsanteAggiungi
         );
@@ -142,6 +148,10 @@ public class AreaPersonale extends JFrame {
 
         pannelloBottoniInventario.add(
                 pulsantePubblica
+        );
+
+        pannelloBottoniInventario.add(
+                pulsanteProposteRicevute
         );
 
         pannelloCenter.add(
@@ -173,9 +183,11 @@ public class AreaPersonale extends JFrame {
                 e -> pubblicaAnnuncio()
         );
 
-        // =========================
+        pulsanteProposteRicevute.addActionListener(
+                e -> mostraProposteRicevute()
+        );
+
         // RECENSIONE
-        // =========================
 
         JPanel pannelloRecensione =
                 new JPanel();
@@ -248,7 +260,6 @@ public class AreaPersonale extends JFrame {
         rigaVenditoreVoto.add(
                 comboVoto
         );
-
 
         // COMMENTO
 
@@ -567,7 +578,8 @@ public class AreaPersonale extends JFrame {
                             this,
                             "Impossibile pubblicare l'annuncio.\n"
                                     + "La carta potrebbe essere già presente "
-                                    + "in un altro annuncio.",
+                                    + "in un altro annuncio oppure bloccata "
+                                    + "in uno scambio.",
                             "Errore",
                             JOptionPane.ERROR_MESSAGE
                     );
@@ -597,90 +609,300 @@ public class AreaPersonale extends JFrame {
                         "Errore",
                         JOptionPane.ERROR_MESSAGE
                 );
+
+                return;
             }
 
-            return;
-        }
+        } else {
 
-        // SCAMBIO
+            // SCAMBIO
 
-        String valoreStringa =
-                JOptionPane.showInputDialog(
-                        this,
-                        "Inserisci il valore di riferimento della carta:",
-                        "Valore di riferimento",
-                        JOptionPane.PLAIN_MESSAGE
-                );
-
-        if (valoreStringa == null) {
-            return;
-        }
-
-        try {
-
-            double valore =
-                    Double.parseDouble(
-                            valoreStringa.trim()
+            String valoreStringa =
+                    JOptionPane.showInputDialog(
+                            this,
+                            "Inserisci il valore di riferimento della carta:",
+                            "Valore di riferimento",
+                            JOptionPane.PLAIN_MESSAGE
                     );
 
-            if (valore <= 0) {
+            if (valoreStringa == null) {
+                return;
+            }
+
+            try {
+
+                double valore =
+                        Double.parseDouble(
+                                valoreStringa.trim()
+                        );
+
+                if (valore <= 0) {
+
+                    JOptionPane.showMessageDialog(
+                            this,
+                            "Il valore deve essere maggiore di zero.",
+                            "Errore",
+                            JOptionPane.ERROR_MESSAGE
+                    );
+
+                    return;
+                }
+
+                AnnuncioScambio annuncio =
+                        controllerAnnunci.pubblicaAnnuncioScambio(
+                                utente,
+                                descrizione,
+                                categoria,
+                                valore,
+                                cartaSelezionata
+                        );
+
+                if (annuncio == null) {
+
+                    JOptionPane.showMessageDialog(
+                            this,
+                            "Impossibile pubblicare l'annuncio.\n"
+                                    + "La carta potrebbe essere già presente "
+                                    + "in un altro annuncio oppure bloccata "
+                                    + "in uno scambio.",
+                            "Errore",
+                            JOptionPane.ERROR_MESSAGE
+                    );
+
+                    return;
+                }
 
                 JOptionPane.showMessageDialog(
                         this,
-                        "Il valore deve essere maggiore di zero.",
+                        "Annuncio di scambio pubblicato!\n\n"
+                                + "ID annuncio: "
+                                + annuncio.getIdAnnuncio()
+                                + "\nCarta offerta: "
+                                + cartaSelezionata.getNomeCarta()
+                                + "\nValore di riferimento: "
+                                + valore
+                                + " €",
+                        "Annuncio pubblicato",
+                        JOptionPane.INFORMATION_MESSAGE
+                );
+
+            } catch (NumberFormatException ex) {
+
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Inserisci un valore numerico valido.",
                         "Errore",
                         JOptionPane.ERROR_MESSAGE
                 );
 
                 return;
             }
+        }
 
-            AnnuncioScambio annuncio =
-                    controllerAnnunci.pubblicaAnnuncioScambio(
-                            utente,
-                            descrizione,
-                            categoria,
-                            valore,
-                            cartaSelezionata
-                    );
+        aggiornaTabellaCarte();
+    }
 
-            if (annuncio == null) {
+    private void mostraProposteRicevute() {
 
-                JOptionPane.showMessageDialog(
-                        this,
-                        "Impossibile pubblicare l'annuncio.\n"
-                                + "La carta potrebbe essere già presente "
-                                + "in un altro annuncio.",
-                        "Errore",
-                        JOptionPane.ERROR_MESSAGE
-                );
+        List<PropostaScambio> propostePendenti =
+                new ArrayList<>();
 
-                return;
+        for (Annuncio annuncio : utente.getAnnunciCreati()) {
+
+            if (!(annuncio instanceof AnnuncioScambio)) {
+                continue;
             }
+
+            AnnuncioScambio annuncioScambio =
+                    (AnnuncioScambio) annuncio;
+
+            List<PropostaScambio> ricevute =
+                    controllerScambi.getProposteRicevute(annuncioScambio);
+
+            for (PropostaScambio proposta : ricevute) {
+
+                if (proposta.getStato() == StatoProposta.IN_ATTESA) {
+                    propostePendenti.add(proposta);
+                }
+            }
+        }
+
+        if (propostePendenti.isEmpty()) {
 
             JOptionPane.showMessageDialog(
                     this,
-                    "Annuncio di scambio pubblicato!\n\n"
-                            + "ID annuncio: "
-                            + annuncio.getIdAnnuncio()
-                            + "\nCarta: "
-                            + cartaSelezionata.getNomeCarta()
-                            + "\nValore di riferimento: "
-                            + valore
-                            + " €",
-                    "Annuncio pubblicato",
+                    "Non hai proposte di scambio in attesa.",
+                    "Proposte Ricevute",
                     JOptionPane.INFORMATION_MESSAGE
             );
 
-        } catch (NumberFormatException ex) {
-
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Inserisci un valore numerico valido.",
-                    "Errore",
-                    JOptionPane.ERROR_MESSAGE
-            );
+            return;
         }
+
+        DefaultListModel<String> modelloLista =
+                new DefaultListModel<>();
+
+        for (PropostaScambio proposta : propostePendenti) {
+
+            StringBuilder descrizione = new StringBuilder();
+
+            descrizione.append("Proposta #")
+                    .append(proposta.getIdProposta())
+                    .append(" da ")
+                    .append(proposta.getProponente().getUsername())
+                    .append(" per l'annuncio \"")
+                    .append(proposta.getAnnuncioRicevuto().getDescrizione())
+                    .append("\" — carte offerte: ");
+
+            List<CartaFisica> carteOfferte =
+                    proposta.getCarteOfferte();
+
+            for (int i = 0; i < carteOfferte.size(); i++) {
+
+                descrizione.append(carteOfferte.get(i).getNomeCarta());
+
+                if (i < carteOfferte.size() - 1) {
+                    descrizione.append(", ");
+                }
+            }
+
+            modelloLista.addElement(descrizione.toString());
+        }
+
+        JList<String> listaProposte =
+                new JList<>(modelloLista);
+
+        listaProposte.setSelectionMode(
+                ListSelectionModel.SINGLE_SELECTION
+        );
+
+        JScrollPane scrollLista =
+                new JScrollPane(listaProposte);
+
+        scrollLista.setPreferredSize(new Dimension(500, 200));
+
+        JDialog dialogo =
+                new JDialog(this, "Proposte di Scambio Ricevute", true);
+
+        dialogo.setLayout(new BorderLayout(10, 10));
+
+        dialogo.add(scrollLista, BorderLayout.CENTER);
+
+        JPanel pannelloBottoni = new JPanel(new FlowLayout());
+
+        JButton pulsanteAccetta = new JButton("Accetta");
+        JButton pulsanteRifiuta = new JButton("Rifiuta");
+        JButton pulsanteChiudi = new JButton("Chiudi");
+
+        pannelloBottoni.add(pulsanteAccetta);
+        pannelloBottoni.add(pulsanteRifiuta);
+        pannelloBottoni.add(pulsanteChiudi);
+
+        dialogo.add(pannelloBottoni, BorderLayout.SOUTH);
+
+        pulsanteAccetta.addActionListener(e -> {
+
+            int indice = listaProposte.getSelectedIndex();
+
+            if (indice == -1) {
+
+                JOptionPane.showMessageDialog(
+                        dialogo,
+                        "Seleziona prima una proposta.",
+                        "Attenzione",
+                        JOptionPane.WARNING_MESSAGE
+                );
+
+                return;
+            }
+
+            PropostaScambio propostaScelta =
+                    propostePendenti.get(indice);
+
+            boolean accettata =
+                    controllerScambi.accettaProposta(
+                            utente,
+                            propostaScelta
+                    );
+
+            if (!accettata) {
+
+                JOptionPane.showMessageDialog(
+                        dialogo,
+                        "Impossibile accettare la proposta.\n"
+                                + "Le carte coinvolte potrebbero non "
+                                + "essere più disponibili.",
+                        "Errore",
+                        JOptionPane.ERROR_MESSAGE
+                );
+
+            } else {
+
+                JOptionPane.showMessageDialog(
+                        dialogo,
+                        "Scambio completato con successo!",
+                        "Scambio concluso",
+                        JOptionPane.INFORMATION_MESSAGE
+                );
+            }
+
+            dialogo.dispose();
+            aggiornaTabellaCarte();
+        });
+
+        pulsanteRifiuta.addActionListener(e -> {
+
+            int indice = listaProposte.getSelectedIndex();
+
+            if (indice == -1) {
+
+                JOptionPane.showMessageDialog(
+                        dialogo,
+                        "Seleziona prima una proposta.",
+                        "Attenzione",
+                        JOptionPane.WARNING_MESSAGE
+                );
+
+                return;
+            }
+
+            PropostaScambio propostaScelta =
+                    propostePendenti.get(indice);
+
+            boolean rifiutata =
+                    controllerScambi.rifiutaProposta(
+                            propostaScelta
+                    );
+
+            if (!rifiutata) {
+
+                JOptionPane.showMessageDialog(
+                        dialogo,
+                        "Impossibile rifiutare la proposta.",
+                        "Errore",
+                        JOptionPane.ERROR_MESSAGE
+                );
+
+            } else {
+
+                JOptionPane.showMessageDialog(
+                        dialogo,
+                        "Proposta rifiutata. Le carte offerte "
+                                + "sono state sbloccate.",
+                        "Proposta rifiutata",
+                        JOptionPane.INFORMATION_MESSAGE
+                );
+            }
+
+            dialogo.dispose();
+            aggiornaTabellaCarte();
+        });
+
+        pulsanteChiudi.addActionListener(e -> dialogo.dispose());
+
+        dialogo.pack();
+        dialogo.setLocationRelativeTo(this);
+        dialogo.setVisible(true);
     }
 
     // TABELLA CARTE
@@ -716,7 +938,9 @@ public class AreaPersonale extends JFrame {
         return dati;
     }
 
+    // =====================================================
     // AGGIUNGI CARTA
+    // =====================================================
 
     private void aggiungiNuovaCarta() {
 
@@ -875,8 +1099,6 @@ public class AreaPersonale extends JFrame {
             );
         }
     }
-
-    // RIMUOVI CARTA
 
     private void rimuoviCartaSelezionata() {
 
@@ -1082,7 +1304,6 @@ public class AreaPersonale extends JFrame {
                         dati,
                         colonneCarte
                 ) {
-
                     @Override
                     public boolean isCellEditable(
                             int row,
@@ -1100,4 +1321,3 @@ public class AreaPersonale extends JFrame {
         );
     }
 }
-

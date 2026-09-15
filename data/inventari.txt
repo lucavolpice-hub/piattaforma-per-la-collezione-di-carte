@@ -1,5 +1,1 @@
-mario;10
-mario;11
-peach;25
-Luke;3
-luke;7
+luca;1

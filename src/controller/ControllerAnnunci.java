@@ -94,6 +94,11 @@ public class ControllerAnnunci {
             return null;
         }
 
+        // La carta non deve essere già impegnata in uno scambio in corso
+        if (carta.isBloccataInScambio()) {
+            return null;
+        }
+
         // La stessa carta non può essere presente
         // in un altro annuncio ancora attivo
         for (Annuncio annuncio :
@@ -146,6 +151,7 @@ public class ControllerAnnunci {
     /**
      * Crea un annuncio di scambio e lo registra sia nella piattaforma
      * sia nella lista personale dell'utente che lo ha creato.
+     * @return l'annuncio creato, oppure null se i dati non sono validi
      */
     public AnnuncioScambio pubblicaAnnuncioScambio(
             Utente creatore,
@@ -157,12 +163,57 @@ public class ControllerAnnunci {
 
         if (creatore == null
                 || descrizione == null
-                || descrizione.isBlank()) {
+                || descrizione.isBlank()
+                || carta == null) {
             return null;
         }
 
         if (valoreDiRiferimento <= 0) {
             return null;
+        }
+
+        // La carta deve appartenere all'utente che pubblica l'annuncio
+        boolean posseduta = false;
+
+        for (CartaFisica cartaInventario :
+                creatore.getInventario().getCarte()) {
+
+            if (cartaInventario.getIdCarta()
+                    == carta.getIdCarta()) {
+
+                posseduta = true;
+                break;
+            }
+        }
+
+        if (!posseduta) {
+            return null;
+        }
+
+        // La carta non deve essere già impegnata in un altro scambio
+        if (carta.isBloccataInScambio()) {
+            return null;
+        }
+
+        // La stessa carta non può essere presente
+        // in un altro annuncio ancora attivo (vendita o scambio)
+        for (Annuncio annuncioEsistente :
+                piattaforma.getAnnuncio()) {
+
+            if (annuncioEsistente.getStato()
+                    == model.StatoAnnuncio.CONCLUSO) {
+                continue;
+            }
+
+            for (CartaFisica cartaAnnuncio :
+                    annuncioEsistente.getCarte()) {
+
+                if (cartaAnnuncio.getIdCarta()
+                        == carta.getIdCarta()) {
+
+                    return null;
+                }
+            }
         }
 
         AnnuncioScambio annuncio =
@@ -172,6 +223,8 @@ public class ControllerAnnunci {
                         creatore,
                         valoreDiRiferimento
                 );
+
+        annuncio.aggiungiCarta(carta);
 
         if (!annuncioDAO.salva(annuncio)) {
             return null;
@@ -187,11 +240,6 @@ public class ControllerAnnunci {
         return annuncio;
     }
 
-    /**
-     * Cerca un annuncio tramite il suo ID.
-     *
-     * @return l'annuncio trovato, oppure null se non esiste
-     */
     public Annuncio cercaAnnuncioPerId(int idAnnuncio) {
 
         for (Annuncio annuncio :
@@ -205,9 +253,6 @@ public class ControllerAnnunci {
         return null;
     }
 
-    /**
-     * Restituisce tutti gli annunci di una certa categoria.
-     */
     public List<Annuncio> cercaAnnunciPerCategoria(
             CategoriaCarta categoria
     ) {
@@ -230,9 +275,6 @@ public class ControllerAnnunci {
         return risultato;
     }
 
-    /**
-     * Restituisce solo gli annunci ancora disponibili.
-     */
     public List<Annuncio> cercaAnnunciDisponibili() {
 
         List<Annuncio> risultato =
@@ -251,9 +293,6 @@ public class ControllerAnnunci {
         return risultato;
     }
 
-    /**
-     * Chiude un annuncio.
-     */
     public boolean chiudiAnnuncio(
             Annuncio annuncio
     ) {
@@ -295,9 +334,7 @@ public class ControllerAnnunci {
             AnnuncioVendita annuncio
     ) {
 
-        // ==========================================
         // 1. CONTROLLI DI BASE
-        // ==========================================
 
         if (acquirente == null
                 || annuncio == null) {
@@ -317,9 +354,7 @@ public class ControllerAnnunci {
             return false;
         }
 
-        // ==========================================
         // 2. ANNUNCIO DISPONIBILE
-        // ==========================================
 
         if (annuncio.getStato()
                 != model.StatoAnnuncio.DISPONIBILE) {
@@ -327,9 +362,7 @@ public class ControllerAnnunci {
             return false;
         }
 
-        // ==========================================
         // 3. RECUPERIAMO IL VENDITORE
-        // ==========================================
 
         Utente venditore =
                 annuncio.getCreatore();
@@ -337,11 +370,8 @@ public class ControllerAnnunci {
         if (venditore == null) {
             return false;
         }
-
-        // ==========================================
         // 4. IL CREATORE NON PUÒ ACQUISTARE
         //    IL PROPRIO ANNUNCIO
-        // ==========================================
 
         if (venditore.getUsername()
                 .equalsIgnoreCase(
@@ -351,9 +381,7 @@ public class ControllerAnnunci {
             return false;
         }
 
-        // ==========================================
         // 5. RECUPERIAMO LE CARTE
-        // ==========================================
 
         List<CartaFisica> carteInVendita =
                 annuncio.getCarte();
@@ -363,11 +391,7 @@ public class ControllerAnnunci {
 
             return false;
         }
-
-        // ==========================================
         // 6. VERIFICA CARTE
-        // ==========================================
-
         for (CartaFisica carta :
                 carteInVendita) {
 
@@ -400,9 +424,7 @@ public class ControllerAnnunci {
             }
         }
 
-        // ==========================================
         // 7. TRASFERIMENTO
-        // ==========================================
 
         List<Integer> carteRimosse =
                 new ArrayList<>();
@@ -412,9 +434,7 @@ public class ControllerAnnunci {
 
         try {
 
-            // --------------------------------------
             // Rimuoviamo le carte dal venditore
-            // --------------------------------------
 
             for (CartaFisica carta :
                     carteInVendita) {
@@ -439,9 +459,7 @@ public class ControllerAnnunci {
                 );
             }
 
-            // --------------------------------------
             // Aggiungiamo le carte all'acquirente
-            // --------------------------------------
 
             for (CartaFisica carta :
                     carteInVendita) {
@@ -466,9 +484,7 @@ public class ControllerAnnunci {
                 );
             }
 
-            // ==========================================
             // 8. AGGIORNIAMO GLI INVENTARI IN MEMORIA
-            // ==========================================
 
             for (CartaFisica carta :
                     carteInVendita) {
@@ -480,17 +496,13 @@ public class ControllerAnnunci {
                         .aggiungiCarta(carta);
             }
 
-            // ==========================================
             // 9. CONCLUDIAMO L'ACQUISTO
-            // ==========================================
 
             annuncio.concludiAcquisto(
                     acquirente
             );
 
-            // ==========================================
             // 10. AGGIORNIAMO L'ANNUNCIO SUL FILE
-            // ==========================================
 
             if (!annuncioDAO.aggiorna(annuncio)) {
 
@@ -502,10 +514,7 @@ public class ControllerAnnunci {
             return true;
 
         } catch (Exception e) {
-
-            // ==========================================
             // ROLLBACK FILE INVENTARI
-            // ==========================================
 
             for (Integer idCarta :
                     carteAggiunte) {
@@ -524,10 +533,7 @@ public class ControllerAnnunci {
                         idCarta
                 );
             }
-
-            // ==========================================
             // ROLLBACK IN MEMORIA
-            // ==========================================
 
             for (CartaFisica carta :
                     carteInVendita) {
@@ -539,9 +545,7 @@ public class ControllerAnnunci {
                         .aggiungiCarta(carta);
             }
 
-            // ==========================================
             // RIPRISTINO STATO ANNUNCIO
-            // ==========================================
 
             annuncio.setStato(
                     model.StatoAnnuncio.DISPONIBILE
