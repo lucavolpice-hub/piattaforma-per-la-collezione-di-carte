@@ -158,6 +158,8 @@ public class ControllerScambi {
         }
 
         // 8. Creiamo la proposta
+
+        // 8. Creiamo la proposta
         PropostaScambio proposta =
                 new PropostaScambio(
                         utenteRegistrato,
@@ -165,11 +167,13 @@ public class ControllerScambi {
                         new ArrayList<>(carteOfferte)
                 );
 
-        // 9. Registriamo la proposta nella piattaforma
+// 9. Registriamo temporaneamente la proposta in memoria
         piattaforma.getProposteScambio().add(proposta);
 
         try {
-            // 10. Colleghiamo la proposta all'annuncio
+            // 10. Colleghiamo la proposta all'annuncio.
+            // aggiungiProposta cambia lo stato dell'annuncio
+            // da DISPONIBILE a IN_TRATTATIVA.
             annuncio.aggiungiProposta(proposta);
 
             // 11. Colleghiamo la proposta al proponente
@@ -178,31 +182,50 @@ public class ControllerScambi {
                     proposta
             );
 
+            // 12. Salviamo la proposta su proposte.txt
+            if (!propostaDAO.salva(proposta)) {
+                throw new IllegalStateException(
+                        "Impossibile salvare la proposta."
+                );
+            }
+
+            // 13. Salviamo lo stato aggiornato dell'annuncio
+            if (!annuncioDAO.aggiorna(annuncio)) {
+                throw new IllegalStateException(
+                        "Impossibile aggiornare l'annuncio."
+                );
+            }
+
             return proposta;
 
         } catch (Exception e) {
 
-            // Rollback:
-            // se qualcosa va male, sblocchiamo le carte
+            // Rollback in memoria
+            piattaforma.getProposteScambio().remove(proposta);
+
+            // Ripristino della proposta nell'annuncio
+            annuncio.rimuoviProposta(proposta);
+            annuncio.setStato(
+                    model.StatoAnnuncio.DISPONIBILE
+            );
+
+            // Sblocco delle carte offerte
             for (CartaFisica carta : carteOfferte) {
                 carta.setBloccataInScambio(false);
+                cartaDAO.aggiorna(carta);
             }
 
-            // e rimuoviamo la proposta dalla piattaforma
-            piattaforma.getProposteScambio().remove(proposta);
+            // Se il salvataggio era parzialmente riuscito,
+            // elimina la riga della proposta.
+            propostaDAO.elimina(
+                    proposta.getIdProposta()
+            );
+
+            // Ripristina l'annuncio su file
+            annuncioDAO.aggiorna(annuncio);
 
             return null;
         }
-    }
-
-    public PropostaScambio cercaPropostaPerId(int idProposta) {
-        for (PropostaScambio proposta : piattaforma.getProposteScambio()) {
-            if (proposta.getIdProposta() == idProposta) {
-                return proposta;
-            }
-        }
-
-        return null;
     }
 
     /**
@@ -542,8 +565,6 @@ public class ControllerScambi {
 
         try {
 
-            // 1. RIMUOVIAMO LE CARTE DA PEACH
-
             for (CartaFisica carta : carteOfferte) {
 
                 if (!inventarioDAO.rimuoviCarta(
@@ -561,7 +582,6 @@ public class ControllerScambi {
                 offerteRimosse.add(carta.getIdCarta());
             }
 
-            // 2. RIMUOVIAMO LE CARTE DA MARIO
 
             for (CartaFisica carta : carteRichieste) {
 
@@ -580,7 +600,6 @@ public class ControllerScambi {
                 richiesteRimosse.add(carta.getIdCarta());
             }
 
-            // 3. AGGIUNGIAMO LE CARTE DI PEACH A MARIO
 
             for (CartaFisica carta : carteOfferte) {
 
@@ -596,8 +615,6 @@ public class ControllerScambi {
                     );
                 }
             }
-
-            // 4. AGGIUNGIAMO LE CARTE DI MARIO A PEACH
 
             for (CartaFisica carta : carteRichieste) {
 

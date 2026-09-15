@@ -1,2 +1,2 @@
-
-2;leon;buona;italiano;false
+5;pikachu;eccellente;italiano;false
+1;leon;eccellente;italiano;false

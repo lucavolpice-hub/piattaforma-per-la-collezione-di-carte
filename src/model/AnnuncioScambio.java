@@ -58,4 +58,12 @@ public class AnnuncioScambio extends Annuncio {
     public List<PropostaScambio> getProposte() {
         return new ArrayList<>(proposte);
     }
+
+    public boolean rimuoviProposta(PropostaScambio proposta) {
+        if (proposta == null) {
+            return false;
+        }
+
+        return proposte.remove(proposta);
+    }
 }
