@@ -375,17 +375,17 @@ public class LoginGui extends JFrame {
         JPanel panel =
                 new JPanel(
                         new GridLayout(
-                                2,
-                                2,
-                                12,
-                                12
+                                3,
+                                3,
+                                15,
+                                15
                         )
                 );
 
         panel.setBorder(
                 BorderFactory.createEmptyBorder(
-                        10,
-                        10,
+                        15,
+                        15,
                         5,
                         10
                 )

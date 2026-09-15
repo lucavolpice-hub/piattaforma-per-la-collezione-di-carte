@@ -89,8 +89,10 @@ public class ControllerUtenti {
                         vendita.getPrezzo(),
                         vendita.getStato()
                 );
-
-            } else if (annuncioSalvato instanceof model.AnnuncioScambio) {
+                for (CartaFisica carta : vendita.getCarte()) {
+                    annuncio.aggiungiCarta(carta);
+                }
+            }else if (annuncioSalvato instanceof model.AnnuncioScambio) {
 
                 model.AnnuncioScambio scambio =
                         (model.AnnuncioScambio) annuncioSalvato;

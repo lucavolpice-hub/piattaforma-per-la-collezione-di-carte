@@ -1,2 +1,2 @@
 
-1;squirtle;ottima;italiano;false
+2;leon;buona;italiano;false

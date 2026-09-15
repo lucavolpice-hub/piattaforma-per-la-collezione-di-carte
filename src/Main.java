@@ -16,9 +16,7 @@ public class Main {
 
     public static void main(String[] args) {
 
-        // ==========================================
         // PIATTAFORMA
-        // ==========================================
 
         Piattaforma piattaforma =
                 new Piattaforma(
@@ -26,18 +24,14 @@ public class Main {
                         new ArrayList<PropostaScambio>()
                 );
 
-        // ==========================================
         // CONTROLLER UTENTI
-        // ==========================================
 
         ControllerUtenti controllerUtenti =
                 new ControllerUtenti(
                         piattaforma
                 );
 
-        // ==========================================
         // CONTROLLER ANNUNCI
-        // ==========================================
 
         ControllerAnnunci controllerAnnunci =
                 new ControllerAnnunci(
@@ -45,9 +39,7 @@ public class Main {
                         controllerUtenti
                 );
 
-        // ==========================================
         // CONTROLLER SCAMBI
-        // ==========================================
 
         ControllerScambi controllerScambi =
                 new ControllerScambi(
@@ -55,9 +47,7 @@ public class Main {
                         controllerUtenti
                 );
 
-        // ==========================================
         // AVVIO GUI
-        // ==========================================
 
         SwingUtilities.invokeLater(() -> {
 
